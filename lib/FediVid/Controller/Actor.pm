@@ -98,19 +98,6 @@ sub outbox ($c) {
 }
 
 sub inbox ($c) {
-    my $ip = $c->tx->remote_address // 'unknown';
-    require FediVid::RateLimit;
-    my ($allowed, $retry_in) = FediVid::RateLimit::check_rate(
-        $c->pg->db, "inbox:$ip", 60, 60
-    );
-    unless ($allowed) {
-        $c->res->headers->header('Retry-After' => $retry_in);
-        return $c->render(json => {
-            error => 'rate_limited',
-            retry_after => $retry_in,
-        }, status => 429);
-    }
-
     my $username = $c->param('username');
     my $db       = $c->pg->db;
 
@@ -164,6 +151,26 @@ sub inbox ($c) {
     my $body = $c->req->json;
     return $c->render(json => { error => 'invalid_json' }, status => 400)
         unless $body && ref $body eq 'HASH';
+
+    # The activity's actor must match the actor derived from the signature keyId.
+    # Otherwise a valid key holder could impersonate any remote actor.
+    my $claimed_actor = $body->{actor};
+    return $c->render(
+        json   => { error => 'missing_actor' },
+        status => 400,
+    ) unless defined $claimed_actor && !ref $claimed_actor;
+
+    my $expected_actor = $actor->{id} // '';
+    (my $expected_clean = $expected_actor) =~ s/#.*\z//;
+    (my $claimed_clean  = $claimed_actor)  =~ s/#.*\z//;
+
+    return $c->render(
+        json   => {
+            error  => 'actor_mismatch',
+            detail => "activity actor '$claimed_clean' does not match key owner '$expected_clean'",
+        },
+        status => 401,
+    ) unless $claimed_clean eq $expected_clean;
 
     $db->query(
         'INSERT INTO activities (username, activity) VALUES (?, ?)',

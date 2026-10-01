@@ -19,13 +19,22 @@ sub fetch ($ua, $db, $key_id) {
 
     if ($cached) {
         my $actor = decode_json($cached->{actor});
-        return ({
-            %$actor,
-            publicKey => {
-                %{ $actor->{publicKey} },
-                publicKeyPem => $cached->{public_key},
-            },
-        }, undef);
+
+        # Verify the cached actor's id matches the URL it is stored under.
+        my $cached_id = $actor->{id} // '';
+        (my $cached_id_clean = $cached_id) =~ s/#.*\z//;
+        if ($cached_id_clean ne $actor_url) {
+            # Poisoned cache entry — drop it and fall through to re-fetch.
+            $db->query('DELETE FROM remote_actors WHERE url = ?', $actor_url);
+        } else {
+            return ({
+                %$actor,
+                publicKey => {
+                    %{ $actor->{publicKey} },
+                    publicKeyPem => $cached->{public_key},
+                },
+            }, undef);
+        }
     }
 
     # --- URL guard only on network path ---
@@ -54,6 +63,12 @@ sub fetch ($ua, $db, $key_id) {
     my $actor = $res->json;
     return (undef, 'remote returned non-JSON') unless $actor;
     return (undef, 'actor document is not a hash') unless ref $actor eq 'HASH';
+
+    # Verify the document's id matches the URL we fetched it from.
+    my $actor_id = $actor->{id} // '';
+    (my $actor_id_clean = $actor_id) =~ s/#.*\z//;
+    return (undef, "actor id mismatch: fetched from $actor_url but id is $actor_id")
+        if $actor_id_clean ne $actor_url;
 
     my $pk = $actor->{publicKey};
     return (undef, 'actor has no publicKey') unless $pk;
