@@ -1,0 +1,17 @@
+{
+    "service_name": "fedivid",
+    "instance_name": "local",
+    "scheme": "http",
+    "domain": "localhost:3000",
+    "base_url": "http://localhost:3000",
+    "listen": "http://127.0.0.1:3000",
+    "database_url": "postgresql://postgres:1234pass@localhost/fedivid_local",
+    "upload_dir": "uploads/local",
+    "session_secret": "dev-insecure-change-me",
+    "admin_secret": "test-admin-token",
+    "allow_signup": true,
+    "known_instances": [
+        "http://localhost:3001",
+        "http://localhost:3002"
+    ]
+}
