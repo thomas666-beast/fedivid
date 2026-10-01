@@ -17,8 +17,7 @@ sub probe_video ($path) {
         $path,
     );
 
-    my $out = `@cmd 2>&1`;
-    my $exit = $? >> 8;
+    my ($exit, $out) = _run(@cmd);
     return (undef, "ffprobe exit $exit: $out") if $exit != 0;
 
     my $data = eval { decode_json($out) };
@@ -41,6 +40,26 @@ sub probe_video ($path) {
         height           => 0 + $height,
         codec            => $video->{codec_name} // 'unknown',
     }, undef);
+}
+
+# Run a command without going through a shell.
+# Returns (exit_code, combined_output_string).
+sub _run (@cmd) {
+    my $out = '';
+    my $pid = open my $fh, '-|';
+    if (!defined $pid) {
+        return (127, "fork failed: $!");
+    }
+    if ($pid == 0) {
+        open STDERR, '>&', \*STDOUT or die "dup stderr: $!";
+        exec @cmd or die "exec failed: $!";
+        exit 127;
+    }
+    while (my $line = <$fh>) {
+        $out .= $line;
+    }
+    close $fh;
+    return ($? >> 8, $out);
 }
 
 1;
