@@ -103,6 +103,45 @@ export async function uploadVideo(username, { title, description, file, tags = [
   return body
 }
 
+export function uploadVideoWithProgress(username, { title, description, file, tags = [] }, onProgress) {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData()
+    fd.append('title', title)
+    fd.append('description', description || '')
+    fd.append('tags', tags.join(','))
+    fd.append('file', file)
+
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `${API_BASE}/users/${encodeURIComponent(username)}/videos`)
+    xhr.withCredentials = true
+
+    if (onProgress && xhr.upload) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress({ loaded: e.loaded, total: e.total, percent: (e.loaded / e.total) * 100 })
+        }
+      }
+    }
+
+    xhr.onload = () => {
+      let body = {}
+      try { body = JSON.parse(xhr.responseText) } catch { /* ignore */ }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(body)
+      } else {
+        const err = new Error(body.error || `HTTP ${xhr.status}`)
+        err.detail = body.detail
+        reject(err)
+      }
+    }
+
+    xhr.onerror = () => reject(new Error('Network error during upload'))
+    xhr.onabort = () => reject(new Error('Upload cancelled'))
+
+    xhr.send(fd)
+  })
+}
+
 export async function getProfile(username) {
   const res = await fetch(
     `${API_BASE}/api/users/${encodeURIComponent(username)}/profile`,
