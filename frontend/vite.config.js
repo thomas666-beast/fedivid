@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       proxy: {
-        '/api':         { target: backend, changeOrigin: true },
+        '/api':         { target: backend, changeOrigin: true, ws: true },
         '/users':       { target: backend, changeOrigin: true },
         '/.well-known': { target: backend, changeOrigin: true },
       },
