@@ -120,7 +120,7 @@ $t->post_ok('/api/sessions', json => {
         body => 'hello from the other server',
     })->status_is(201)
       ->json_is('/sender',    'alice')
-      ->json_is('/recipient', '@remote.test/users/bob')
+      ->json_is('/recipient', 'bob@remote.test')
       ->json_is('/is_remote', 1);
 
     my $delivery = $pg->db->query(
@@ -144,7 +144,7 @@ $t->post_ok('/api/sessions', json => {
         from => 'alice',
         to   => $actor_url,
         body => 'by url',
-    })->status_is(201)->json_is('/recipient', '@remote.test/users/bob');
+    })->status_is(201)->json_is('/recipient', 'bob@remote.test');
 }
 
 # --- Send to local still works ---

@@ -168,7 +168,7 @@ sub signed_post {
       ->json_is('/items/0/is_remote', 1);
 
     my $short = $t->tx->res->json->{items}[0]{sender};
-    like $short, qr/^[\\\@]remote\.test/, 'sender shown as @host form';
+    is $short, 'bob@remote.test', 'sender shown as user@host';
 }
 
 done_testing();
