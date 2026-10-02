@@ -109,7 +109,12 @@ watch(() => route.params.handle, load)
         </div>
       </header>
 
-      <div v-if="actor.summary" class="remote-summary" v-html="actor.summary"></div>
+      <!--
+        Security note: the summary comes from a remote actor document that we do
+        not control. It is rendered as plain text ({{ }}) so the browser escapes
+        any HTML. Do NOT switch this to v-html without a proper sanitizer.
+      -->
+      <div v-if="actor.summary" class="remote-summary">{{ actor.summary }}</div>
 
       <div v-if="actor.videos.length === 0" class="empty">
         No videos cached from this account yet.
@@ -178,6 +183,8 @@ html:not(.dark) .remote-header { background: #fff; border-color: #e7e7ec; }
     border-radius: 14px;
     color: #a1a7b3;
     line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 html:not(.dark) .remote-summary { background: #fff; border-color: #e7e7ec; }
 
