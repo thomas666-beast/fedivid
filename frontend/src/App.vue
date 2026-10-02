@@ -13,6 +13,7 @@ const me = ref(null)
 const unread = ref(0)
 const unreadMessages = ref(0)
 const userMenu = ref(false)
+const userMenuWrap = ref(null)
 const instance = ref({ name: 'FediVid', description: '' })
 let socket = null
 
@@ -69,6 +70,14 @@ async function doLogout() {
   router.push('/login')
 }
 
+function handleDocumentClick(e) {
+  if (!userMenu.value) return
+  const el = userMenuWrap.value
+  if (el && !el.contains(e.target)) {
+    userMenu.value = false
+  }
+}
+
 onMounted(async () => {
   const inst = await getInstance()
   instance.value = inst
@@ -76,6 +85,8 @@ onMounted(async () => {
 
   await refresh()
   if (me.value) connectSocket()
+
+  document.addEventListener('click', handleDocumentClick)
 })
 
 router.afterEach((to) => {
@@ -90,7 +101,10 @@ watch(me, (val) => {
   else closeSocket()
 })
 
-onBeforeUnmount(closeSocket)
+onBeforeUnmount(() => {
+  closeSocket()
+  document.removeEventListener('click', handleDocumentClick)
+})
 </script>
 
 <template>
@@ -139,14 +153,14 @@ onBeforeUnmount(closeSocket)
           </RouterLink>
 
           <template v-if="me">
-            <div class="user-menu-wrap">
-              <button @click="userMenu = !userMenu" class="user-chip">
+            <div class="user-menu-wrap" ref="userMenuWrap">
+              <button @click.stop="userMenu = !userMenu" class="user-chip">
                 <Avatar :username="me.username" size="sm" />
                 <span class="user-name">{{ me.username }}</span>
                 <Icon name="menu" :size="12" />
               </button>
 
-              <div v-if="userMenu" class="user-menu" @click="userMenu = false">
+              <div v-if="userMenu" class="user-menu">
                 <RouterLink :to="`/users/${me.username}`" class="user-menu-item">
                   <Icon name="user" :size="14" /> My profile
                 </RouterLink>
@@ -182,20 +196,34 @@ onBeforeUnmount(closeSocket)
     <!-- Mobile bottom nav -->
     <nav v-if="me" class="mobile-nav">
       <RouterLink to="/" class="mobile-link" :class="{ active: $route.path === '/' }">
-        <Icon name="home" :size="20" /><span>Home</span>
+        <span class="mobile-icon"><Icon name="home" :size="20" /></span>
+        <span>Home</span>
       </RouterLink>
       <RouterLink to="/local" class="mobile-link" :class="{ active: $route.path === '/local' }">
-        <Icon name="users" :size="20" /><span>Local</span>
+        <span class="mobile-icon"><Icon name="users" :size="20" /></span>
+        <span>Local</span>
       </RouterLink>
       <RouterLink to="/federated" class="mobile-link" :class="{ active: $route.path === '/federated' }">
-        <Icon name="repeat" :size="20" /><span>Fed</span>
+        <span class="mobile-icon"><Icon name="repeat" :size="20" /></span>
+        <span>Fed</span>
       </RouterLink>
       <RouterLink to="/explore" class="mobile-link" :class="{ active: $route.path === '/explore' }">
-        <Icon name="search" :size="20" /><span>Explore</span>
+        <span class="mobile-icon"><Icon name="search" :size="20" /></span>
+        <span>Explore</span>
       </RouterLink>
-      <RouterLink to="/notifications" class="mobile-link mobile-bell" :class="{ active: $route.path === '/notifications' }">
-        <Icon name="bell" :size="20" /><span>Alerts</span>
-        <span v-if="unread" class="badge-dot">{{ fmtBadge(unread) }}</span>
+      <RouterLink to="/messages" class="mobile-link" :class="{ active: $route.path.startsWith('/messages') }">
+        <span class="mobile-icon">
+          <Icon name="message" :size="20" />
+          <span v-if="unreadMessages" class="badge-dot">{{ fmtBadge(unreadMessages) }}</span>
+        </span>
+        <span>Chats</span>
+      </RouterLink>
+      <RouterLink to="/notifications" class="mobile-link" :class="{ active: $route.path === '/notifications' }">
+        <span class="mobile-icon">
+          <Icon name="bell" :size="20" />
+          <span v-if="unread" class="badge-dot">{{ fmtBadge(unread) }}</span>
+        </span>
+        <span>Alerts</span>
       </RouterLink>
     </nav>
   </div>
@@ -327,6 +355,7 @@ html:not(.dark) .icon-btn:hover { background: #f3f3f6; color: #0e0f14; }
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
+    z-index: 60;
 }
 .user-menu-item {
     display: flex;
@@ -380,14 +409,29 @@ html:not(.dark) .icon-btn:hover { background: #f3f3f6; color: #0e0f14; }
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0.15rem;
-        padding: 0.5rem 0;
+        gap: 0.1rem;
+        padding: 0.45rem 0;
         color: #a1a7b3;
         text-decoration: none;
-        font-size: 0.68rem;
+        font-size: 0.62rem;
         font-weight: 600;
         position: relative;
     }
     .mobile-link.active { color: #8b5cf6; }
+
+    .mobile-icon {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .mobile-icon .badge-dot {
+        top: -6px;
+        right: -8px;
+        min-width: 14px;
+        height: 14px;
+        padding: 0 3px;
+        font-size: 0.55rem;
+    }
 }
 </style>
