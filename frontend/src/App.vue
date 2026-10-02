@@ -13,6 +13,10 @@ const isDark = ref(localStorage.getItem('theme') !== 'light')
 const userMenu = ref(false)
 const instance = ref({ name: 'FediVid', description: '' })
 
+// Notification-count refresh throttle: don't hit the network on every route change.
+let lastUnreadRefresh = 0
+const UNREAD_REFRESH_MS = 30_000
+
 function toggleTheme() {
   isDark.value = !isDark.value
   const t = isDark.value ? 'dark' : 'light'
@@ -20,12 +24,23 @@ function toggleTheme() {
   document.documentElement.classList.toggle('dark', isDark.value)
 }
 
-async function refresh() {
+async function refresh(opts = {}) {
   me.value = await getSession()
-  if (me.value) {
-    try { unread.value = (await getNotifications(me.value.username)).unseen || 0 }
-    catch { unread.value = 0 }
-  } else unread.value = 0
+  if (!me.value) {
+    unread.value = 0
+    return
+  }
+
+  const now = Date.now()
+  const stale = now - lastUnreadRefresh > UNREAD_REFRESH_MS
+  if (opts.force || stale) {
+    try {
+      unread.value = (await getNotifications(me.value.username)).unseen || 0
+      lastUnreadRefresh = now
+    } catch {
+      unread.value = 0
+    }
+  }
 }
 
 async function doLogout() {
@@ -48,7 +63,9 @@ onMounted(async () => {
   refresh()
 })
 
-router.afterEach(refresh)
+router.afterEach((to) => {
+  refresh({ force: to.path === '/notifications' })
+})
 </script>
 
 <template>
@@ -133,7 +150,7 @@ router.afterEach(refresh)
 
     <!-- Main -->
     <main class="main">
-      <RouterView @marked-seen="refresh" />
+      <RouterView @marked-seen="() => refresh({ force: true })" />
     </main>
 
     <!-- Mobile bottom nav -->
