@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
   username: { type: String, required: true },
@@ -9,6 +9,12 @@ const props = defineProps({
 const sizes = { sm: '1.75rem', md: '2.5rem', lg: '4.5rem' }
 const fontSizes = { sm: '0.75rem', md: '1rem', lg: '1.75rem' }
 
+const failed = ref(false)
+
+// Reset the failure state when the username changes — the new user might
+// have a working avatar.
+watch(() => props.username, () => { failed.value = false })
+
 const initial = computed(() => {
   const u = (props.username || '').replace(/^@/, '')
   const first = u.split(/[@/]/)[0] || '?'
@@ -16,11 +22,14 @@ const initial = computed(() => {
 })
 
 const avatarUrl = computed(() => {
+  if (failed.value) return null
   const u = (props.username || '').replace(/^@/, '')
   // Remote actors don't have local avatars yet
   if (u.includes('/users/') || u.includes('@')) return null
   return `/users/${encodeURIComponent(u)}/avatar`
 })
+
+const showFallback = computed(() => !avatarUrl.value)
 </script>
 
 <template>
@@ -32,7 +41,7 @@ const avatarUrl = computed(() => {
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: avatarUrl ? 'transparent' : 'linear-gradient(135deg, #8b5cf6, #d946ef)',
+      background: showFallback ? 'linear-gradient(135deg, #8b5cf6, #d946ef)' : 'transparent',
       color: 'white',
       borderRadius: '9999px',
       fontWeight: 700,
@@ -46,7 +55,7 @@ const avatarUrl = computed(() => {
       :src="avatarUrl"
       :alt="username"
       style="width: 100%; height: 100%; object-fit: cover;"
-      @error="(e) => { e.target.style.display = 'none'; e.target.parentElement.style.background = 'linear-gradient(135deg, #8b5cf6, #d946ef)'; e.target.parentElement.textContent = initial; }"
+      @error="failed = true"
     />
     <span v-else>{{ initial }}</span>
   </span>
