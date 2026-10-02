@@ -3,6 +3,7 @@ import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { RouterView, RouterLink, useRouter } from 'vue-router'
 import { getSession, logout, getNotifications, getInstance, openMessageSocket } from './api'
 import { emitMessage } from './lib/messageBus'
+import { isDark, toggleTheme } from './lib/theme'
 import { fmtBadge } from './utils/format'
 import Icon from './components/Icon.vue'
 import Avatar from './components/Avatar.vue'
@@ -11,20 +12,12 @@ const router = useRouter()
 const me = ref(null)
 const unread = ref(0)
 const unreadMessages = ref(0)
-const isDark = ref(localStorage.getItem('theme') !== 'light')
 const userMenu = ref(false)
 const instance = ref({ name: 'FediVid', description: '' })
 let socket = null
 
 let lastUnreadRefresh = 0
 const UNREAD_REFRESH_MS = 30_000
-
-function toggleTheme() {
-  isDark.value = !isDark.value
-  const t = isDark.value ? 'dark' : 'light'
-  localStorage.setItem('theme', t)
-  document.documentElement.classList.toggle('dark', isDark.value)
-}
 
 async function refresh(opts = {}) {
   me.value = await getSession()
