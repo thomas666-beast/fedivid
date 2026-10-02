@@ -93,7 +93,7 @@ sub _authenticate_as ($c, $user, $username) {
     my ($key_id) = $auth =~ /keyId="([^"]+)"/;
     return (0, 'missing keyId') unless $key_id;
 
-    my $base   = $c->config('scheme') . '://' . $c->config('domain');
+    my $base   = $c->config('base_url');
     my $expect = "$base/users/$username";
 
     (my $key_actor = $key_id) =~ s/#.*\z//;

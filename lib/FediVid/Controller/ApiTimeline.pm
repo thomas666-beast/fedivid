@@ -143,7 +143,7 @@ sub index ($c) {
     @items = sort {
         my $a_key = $a->{published_at} // '';
         my $b_key = $b->{published_at} // '';
-        $b_key cmp $a_key
+        $b_key cmp $a_key || $b->{id} <=> $a->{id}
     } @items;
 
     my $next_cursor;
@@ -364,7 +364,7 @@ sub federated ($c) {
     @items = sort {
         my $a_key = $a->{published_at} // '';
         my $b_key = $b->{published_at} // '';
-        $b_key cmp $a_key
+        $b_key cmp $a_key || $b->{id} <=> $a->{id}
     } @items;
 
     my $next_cursor;

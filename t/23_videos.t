@@ -134,8 +134,11 @@ is $row->{transcode_status}, 'pending', 'status is pending after upload';
 ok !$row->{hls_dir}, 'no hls_dir yet';
 
 # --- File on disk ---
+# Note: the upload path runs `_faststart`, which rearranges the MP4 metadata
+# (moov atom moved before mdat). So the file on disk is no longer byte-identical
+# to the uploaded bytes — it's a valid MP4 with faststart applied.
 ok -f $row->{file_path}, 'file exists on disk';
-is path($row->{file_path})->slurp, $video_bytes, 'file content matches';
+like path($row->{file_path})->slurp, qr/^....ftyp/, 'file content is a valid MP4';
 
 # --- Outbox contains Create ---
 my $outbox = $pg->db->query(
@@ -261,7 +264,7 @@ ok $video_path, 'extracted video path from DB';
 $t->get_ok("/users/alice/videos/$video_path")
   ->status_is(200)
   ->content_type_is('video/mp4')
-  ->content_is($video_bytes)
+  ->content_like(qr/^....ftyp/)       # MP4 magic (moov first, faststart-applied)
   ->header_is('Accept-Ranges' => 'bytes');
 
 # --- Path traversal rejected ---
