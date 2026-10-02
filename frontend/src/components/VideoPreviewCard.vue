@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'
 import Icon from './Icon.vue'
 import Avatar from './Avatar.vue'
@@ -20,6 +20,8 @@ const liked = ref(false)
 const likeCount = ref(props.video.like_count || 0)
 const boostCount = ref(props.video.boost_count || 0)
 const boostBusy = ref(false)
+const copied = ref(false)
+let copiedTimer = null
 
 const videoLink = computed(() => {
   if (props.video.source === 'local' || !props.video.source) {
@@ -28,8 +30,6 @@ const videoLink = computed(() => {
   return `/v/${props.video.id}`
 })
 
-// Display handle: for remote "@localhost:3000/users/alice" → "@alice@localhost:3000"
-// for local "alice" → "alice"
 const displayName = computed(() => {
   const u = props.username || ''
   if (u.includes('/users/')) {
@@ -41,14 +41,10 @@ const displayName = computed(() => {
 
 const authorLink = computed(() => {
   const u = props.username || ''
-
-  // Remote: "@localhost:3000/users/alice" → "/remote/alice@localhost:3000"
   if (u.includes('/users/')) {
     const [host, user] = u.replace(/^@/, '').split('/users/')
     return `/remote/${user}@${host}`
   }
-
-  // Local
   return `/users/${encodeURIComponent(u)}`
 })
 
@@ -72,9 +68,12 @@ onMounted(async () => {
   }
 })
 
+onBeforeUnmount(() => {
+  if (copiedTimer) clearTimeout(copiedTimer)
+})
+
 async function toggleLike() {
   if (!me.value) return
-  // Like on remote videos not supported yet
   if (props.video.source && props.video.source !== 'local') return
 
   if (liked.value) {
@@ -93,7 +92,6 @@ async function toggleBoost() {
 
   boostBusy.value = true
 
-  // Boost by URL — works for both local and remote videos
   const objectUrl = props.video.url || props.video.object_id
   if (!objectUrl) {
     boostBusy.value = false
@@ -125,7 +123,12 @@ async function toggleBoost() {
 
 async function share() {
   const url = `${window.location.origin}${videoLink.value}`
-  try { await navigator.clipboard.writeText(url) } catch { /* ignore */ }
+  try {
+    await navigator.clipboard.writeText(url)
+    copied.value = true
+    clearTimeout(copiedTimer)
+    copiedTimer = setTimeout(() => { copied.value = false }, 1500)
+  } catch { /* ignore */ }
 }
 </script>
 
@@ -210,9 +213,14 @@ async function share() {
             <span class="vpc-action-label">Comment</span>
           </RouterLink>
 
-          <button class="vpc-action" title="Share" @click.stop="share">
-            <Icon name="send" :size="15" />
-            <span class="vpc-action-label">Share</span>
+          <button
+            class="vpc-action"
+            :class="{ active: copied }"
+            :title="copied ? 'Copied!' : 'Share'"
+            @click.stop="share"
+          >
+            <Icon :name="copied ? 'check' : 'send'" :size="15" />
+            <span class="vpc-action-label">{{ copied ? 'Copied!' : 'Share' }}</span>
           </button>
         </div>
       </div>
