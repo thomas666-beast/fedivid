@@ -34,11 +34,11 @@ sub show ($c) {
     my $videos = $db->query(
         q{
             SELECT id, title, description, object_id, video_url, media_type,
-                   duration, width, height, published_at
+                   duration, width, height, published_at, poster_url
               FROM (
                   SELECT DISTINCT ON (object_id)
                          id, title, description, object_id, video_url, media_type,
-                         duration, width, height, published_at
+                         duration, width, height, published_at, poster_url
                     FROM remote_videos
                    WHERE remote_actor = ?
                    ORDER BY object_id, id
@@ -48,6 +48,10 @@ sub show ($c) {
         },
         $actor_url
     )->hashes;
+
+    my $icon = ref $doc->{icon} eq 'HASH'
+        ? $doc->{icon}{url}
+        : ($doc->{icon} // undef);
 
     my @items = map {
         {
@@ -59,7 +63,8 @@ sub show ($c) {
             description      => $_->{description} // '',
             url              => $_->{video_url},
             hls_url          => undef,
-            poster_url       => undef,
+            poster_url       => $_->{poster_url},   # NOW RETURNED
+            author_icon      => $icon,              # NEW: avatar URL for the card
             duration         => $_->{duration} ? 0 + $_->{duration} : undef,
             width            => $_->{width}    ? 0 + $_->{width}    : undef,
             height           => $_->{height}   ? 0 + $_->{height}   : undef,
@@ -77,9 +82,7 @@ sub show ($c) {
         handle       => '@' . $short,
         name         => $doc->{name}              // $doc->{preferredUsername} // $short,
         summary      => $doc->{summary}           // '',
-        icon         => ref $doc->{icon} eq 'HASH'
-                        ? $doc->{icon}{url}
-                        : ($doc->{icon} // undef),
+        icon         => $icon,
         inbox        => $doc->{inbox}             // undef,
         published_at => $doc->{published}         // undef,
         fetched_at   => $actor->{fetched_at},

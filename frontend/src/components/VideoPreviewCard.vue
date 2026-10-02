@@ -162,7 +162,7 @@ async function share() {
       </RouterLink>
 
       <div class="vpc-author">
-        <Avatar :username="username" size="sm" />
+        <Avatar :username="username" size="sm" :src="video.author_icon || null" />
         <RouterLink :to="authorLink" class="vpc-author-name">
           @{{ displayName }}
         </RouterLink>
