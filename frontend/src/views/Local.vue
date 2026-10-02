@@ -39,13 +39,11 @@ async function reset() {
 onMounted(async () => {
   try {
     const sess = await getSession()
-  
     if (sess) {
-      try {
-        myBoosts.value = await getMyBoosts(sess.username)
-      } catch { /* ignore */ }
+      myBoosts.value = await getMyBoosts(sess.username)
     }
-    await loadPage()
+    const hasMore = await loadPage()
+    if (!hasMore) done.value = true
     markReady()
   } catch (e) {
     error.value = e.message
@@ -54,7 +52,8 @@ onMounted(async () => {
 
 watch(activeTag, async () => {
   await reset()
-  await loadPage()
+  const hasMore = await loadPage()
+  if (!hasMore) done.value = true
   markReady()
 })
 

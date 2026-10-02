@@ -234,7 +234,7 @@ onBeforeUnmount(() => {
     position: sticky;
     top: 0;
     z-index: 50;
-    background: rgba(20, 23, 31, 0.85);
+    background: rgba(16, 17, 20, 0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid #232833;
@@ -392,7 +392,7 @@ html:not(.dark) .icon-btn:hover { background: #f3f3f6; color: #0e0f14; }
         bottom: 0;
         left: 0;
         right: 0;
-        background: rgba(20, 23, 31, 0.95);
+        background: rgba(16, 17, 20, 0.95);
         backdrop-filter: blur(12px);
         border-top: 1px solid #232833;
         padding: 0.4rem 0 calc(0.4rem + env(safe-area-inset-bottom));

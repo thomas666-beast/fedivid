@@ -1,10 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getSession, getTimeline, getMyBoosts } from '../api'
 import VideoPreviewCard from '../components/VideoPreviewCard.vue'
 import Icon from '../components/Icon.vue'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll'
-import { getSession, getTimeline, getMyBoosts } from '../api'
 
 const router = useRouter()
 const items = ref([])
@@ -32,7 +32,8 @@ onMounted(async () => {
     myBoosts.value = await getMyBoosts(sess.username)
   } catch { /* ignore */ }
 
-  await loadPage()
+  const hasMore = await loadPage()
+  if (!hasMore) done.value = true
   markReady()
 })
 
@@ -58,7 +59,7 @@ function videoOf(item) {
     <p v-if="error" class="error">{{ error }}</p>
 
     <div v-if="items.length === 0 && !loading" class="empty">
-      <Icon name="play" :size="32" style="margin: 0 auto 0.75rem; display: block; color: #6a7180;" />
+      <Icon name="play" :size="32" style="margin: 0 auto 0.75rem; display: block; color: #6a6e78;" />
       <p style="margin: 0;">Nothing here yet.</p>
       <p class="muted" style="margin: 0.25rem 0 0;">Follow some people, or upload a video.</p>
     </div>
@@ -112,7 +113,7 @@ function videoOf(item) {
     gap: 0.4rem;
     padding-left: 0.5rem;
     font-size: 0.82rem;
-    color: #6a7180;
+    color: #6a6e78;
 }
 .boost-user {
     color: #8b5cf6;

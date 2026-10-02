@@ -71,6 +71,11 @@ async function reload() {
     profile.value = prof
     me.value = sess
 
+    // If the first page has no next cursor, we're already done.
+    // Without this, markReady() would trigger loadNext(), which would
+    // refetch the first page and duplicate it.
+    if (!data.next_cursor) done.value = true
+
     if (sess) {
       try {
         myBoosts.value = await getMyBoosts(sess.username)
@@ -231,11 +236,11 @@ watch(() => props.username, reload)
     flex-direction: column;
     gap: 1.5rem;
     padding: 2rem;
-    background: #14171f;
-    border: 1px solid #232833;
+    background: #101114;
+    border: 1px solid #1e1f24;
     border-radius: 20px;
 }
-html:not(.dark) .profile-card { background: #fff; border-color: #e7e7ec; }
+html:not(.dark) .profile-card { background: #fafbfc; border-color: #dcdde1; }
 
 .profile-top {
     display: flex;
@@ -268,17 +273,17 @@ html:not(.dark) .profile-card { background: #fff; border-color: #e7e7ec; }
 .stat-value {
     font-size: 1.15rem;
     font-weight: 700;
-    color: #f4f4f7;
+    color: #f5f6f8;
     line-height: 1;
 }
-html:not(.dark) .stat-value { color: #0e0f14; }
+html:not(.dark) .stat-value { color: #1a1b22; }
 
 .stat-label {
     font-size: 0.72rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #6a7180;
+    color: #6a6e78;
 }
 
 .stat-link {
@@ -292,9 +297,9 @@ html:not(.dark) .stat-value { color: #0e0f14; }
     gap: 0.5rem;
     flex-wrap: wrap;
     padding-top: 1.25rem;
-    border-top: 1px solid #232833;
+    border-top: 1px solid #1e1f24;
 }
-html:not(.dark) .profile-actions { border-color: #e7e7ec; }
+html:not(.dark) .profile-actions { border-color: #dcdde1; }
 
 .feed { display: grid; gap: 1.25rem; }
 @media (min-width: 640px) {
@@ -312,8 +317,8 @@ html:not(.dark) .profile-actions { border-color: #e7e7ec; }
     display: flex;
     gap: 0.5rem;
     padding-top: 1.25rem;
-    border-top: 1px solid #232833;
+    border-top: 1px solid #1e1f24;
     margin-top: 1.25rem;
 }
-html:not(.dark) .subscribe-row { border-color: #e7e7ec; }
+html:not(.dark) .subscribe-row { border-color: #dcdde1; }
 </style>

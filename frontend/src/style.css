@@ -3,15 +3,15 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    --color-page:     #0b0d12;
-    --color-surface:  #14171f;
-    --color-elevated: #1c2029;
-    --color-hover:    #252a35;
-    --color-line:        #232833;
-    --color-line-strong: #333a48;
-    --color-ink:        #f4f4f7;
-    --color-ink-muted:  #a1a7b3;
-    --color-ink-dim:    #6a7180;
+    --color-page:     #08090b;
+    --color-surface:  #101114;
+    --color-elevated: #17181c;
+    --color-hover:    #1f2025;
+    --color-line:        #1e1f24;
+    --color-line-strong: #2b2d34;
+    --color-ink:        #f5f6f8;
+    --color-ink-muted:  #9ca0a8;
+    --color-ink-dim:    #6a6e78;
     --color-brand:        #8b5cf6;
     --color-brand-hover:  #a78bfa;
     --color-ok:    #22c55e;
@@ -22,26 +22,29 @@
 
 html {
     color-scheme: dark;
-    background: #0b0d12;
+    background: #08090b;
 }
 
 html:not(.dark) {
     color-scheme: light;
-    background: #fafafb;
+    background: #f0f1f3;
 }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
-    color: #f4f4f7;
-    background: #0b0d12;
+    color: #f5f6f8;
+    background: #08090b;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.005em;
     margin: 0;
     min-height: 100vh;
 }
 
 html:not(.dark) body {
-    color: #0e0f14;
-    background: #fafafb;
+    color: #1a1b22;
+    background: #f0f1f3;
+    letter-spacing: 0;
 }
 
 /* ---- Form controls ---- */
@@ -50,9 +53,9 @@ textarea,
 select {
     width: 100%;
     padding: 0.7rem 1rem;
-    background: #1c2029;
-    color: #f4f4f7;
-    border: 1px solid #232833;
+    background: #17181c;
+    color: #f5f6f8;
+    border: 1px solid #1e1f24;
     border-radius: 10px;
     font-family: inherit;
     font-size: 0.95rem;
@@ -65,12 +68,12 @@ html:not(.dark) input:not([type="checkbox"]):not([type="radio"]):not([type="subm
 html:not(.dark) textarea,
 html:not(.dark) select {
     background: #ffffff;
-    color: #0e0f14;
-    border-color: #e7e7ec;
+    color: #1a1b22;
+    border-color: #dcdde1;
 }
 
 input::placeholder,
-textarea::placeholder { color: #6a7180; }
+textarea::placeholder { color: #6a6e78; }
 
 input:not([type="checkbox"]):not([type="radio"]):focus,
 textarea:focus,
@@ -78,7 +81,7 @@ select:focus {
     outline: none;
     border-color: #8b5cf6;
     box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.14);
-    background: #14171f;
+    background: #101114;
 }
 
 html:not(.dark) input:not([type="checkbox"]):not([type="radio"]):focus,
@@ -92,9 +95,9 @@ input[type="file"] { padding: 0.55rem 0.75rem; cursor: pointer; }
 input[type="file"]::file-selector-button {
     padding: 0.45rem 0.9rem;
     margin-right: 0.75rem;
-    background: #252a35;
-    color: #f4f4f7;
-    border: 1px solid #232833;
+    background: #1f2025;
+    color: #f5f6f8;
+    border: 1px solid #1e1f24;
     border-radius: 8px;
     font-family: inherit;
     font-weight: 600;
@@ -106,12 +109,12 @@ input[type="file"]::file-selector-button {
     display: block;
     font-size: 0.78rem;
     font-weight: 700;
-    color: #a1a7b3;
+    color: #9ca0a8;
     margin-bottom: 0.5rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
 }
-html:not(.dark) .label-text { color: #5a5f6d; }
+html:not(.dark) .label-text { color: #5a5d66; }
 
 /* ---- Buttons ---- */
 .btn {
@@ -120,9 +123,9 @@ html:not(.dark) .label-text { color: #5a5f6d; }
     justify-content: center;
     gap: 0.5rem;
     padding: 0.65rem 1.1rem;
-    background: #1c2029;
-    color: #f4f4f7;
-    border: 1px solid #232833;
+    background: #17181c;
+    color: #f5f6f8;
+    border: 1px solid #1e1f24;
     border-radius: 10px;
     font-weight: 600;
     font-size: 0.92rem;
@@ -131,14 +134,14 @@ html:not(.dark) .label-text { color: #5a5f6d; }
     white-space: nowrap;
     font-family: inherit;
 }
-.btn:hover:not(:disabled) { background: #252a35; border-color: #333a48; }
+.btn:hover:not(:disabled) { background: #1f2025; border-color: #2b2d34; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-primary {
     background: #8b5cf6;
     border-color: #8b5cf6;
     color: #fff;
-    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.25);
 }
 .btn-primary:hover:not(:disabled) {
     background: #a78bfa;
@@ -148,17 +151,17 @@ html:not(.dark) .label-text { color: #5a5f6d; }
 .btn-ghost {
     background: transparent;
     border-color: transparent;
-    color: #a1a7b3;
+    color: #9ca0a8;
 }
-.btn-ghost:hover:not(:disabled) { background: #252a35; color: #f4f4f7; }
+.btn-ghost:hover:not(:disabled) { background: #1f2025; color: #f5f6f8; }
 
 .btn-danger { color: #ef4444; }
 .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.82rem; }
 
-html:not(.dark) .btn { background: #fff; color: #0e0f14; border-color: #e7e7ec; }
-html:not(.dark) .btn:hover:not(:disabled) { background: #f3f3f6; }
-html:not(.dark) .btn-ghost { background: transparent; color: #5a5f6d; }
-html:not(.dark) .btn-ghost:hover:not(:disabled) { background: #f3f3f6; color: #0e0f14; }
+html:not(.dark) .btn { background: #fafbfc; color: #1a1b22; border-color: #dcdde1; }
+html:not(.dark) .btn:hover:not(:disabled) { background: #e7e9ec; }
+html:not(.dark) .btn-ghost { background: transparent; color: #5a5d66; }
+html:not(.dark) .btn-ghost:hover:not(:disabled) { background: #e7e9ec; color: #1a1b22; }
 
 /* ---- RSS subscribe button ---- */
 .rss-btn {
@@ -167,8 +170,8 @@ html:not(.dark) .btn-ghost:hover:not(:disabled) { background: #f3f3f6; color: #0
     gap: 0.5rem;
     padding: 0.45rem 0.9rem;
     background: transparent;
-    border: 1px solid #232833;
-    color: #a1a7b3;
+    border: 1px solid #1e1f24;
+    color: #9ca0a8;
     border-radius: 10px;
     font-size: 0.85rem;
     font-weight: 600;
@@ -181,8 +184,8 @@ html:not(.dark) .btn-ghost:hover:not(:disabled) { background: #f3f3f6; color: #0
     background: rgba(245, 158, 11, 0.08);
 }
 html:not(.dark) .rss-btn {
-    border-color: #e7e7ec;
-    color: #5a5f6d;
+    border-color: #dcdde1;
+    color: #5a5d66;
 }
 html:not(.dark) .rss-btn:hover {
     color: #d97706;
@@ -192,14 +195,14 @@ html:not(.dark) .rss-btn:hover {
 
 /* ---- Cards ---- */
 .card {
-    background: #14171f;
-    border: 1px solid #232833;
+    background: #101114;
+    border: 1px solid #1e1f24;
     border-radius: 16px;
     padding: 1.5rem;
     transition: border-color 0.2s;
 }
-.card:hover { border-color: #333a48; }
-html:not(.dark) .card { background: #fff; border-color: #e7e7ec; }
+.card:hover { border-color: #2b2d34; }
+html:not(.dark) .card { background: #fafbfc; border-color: #dcdde1; }
 
 /* ---- Badges ---- */
 .badge {
@@ -207,9 +210,9 @@ html:not(.dark) .card { background: #fff; border-color: #e7e7ec; }
     align-items: center;
     gap: 0.3rem;
     padding: 0.2rem 0.65rem;
-    background: #1c2029;
-    color: #a1a7b3;
-    border: 1px solid #232833;
+    background: #17181c;
+    color: #9ca0a8;
+    border: 1px solid #1e1f24;
     border-radius: 9999px;
     font-size: 0.7rem;
     font-weight: 700;
@@ -222,10 +225,10 @@ html:not(.dark) .card { background: #fff; border-color: #e7e7ec; }
 .badge-accent  { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; border-color: transparent; }
 
 /* ---- Helpers ---- */
-.muted { color: #a1a7b3; font-size: 0.9rem; }
+.muted { color: #9ca0a8; font-size: 0.9rem; }
 .mono  { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.85rem; }
 .error { color: #ef4444; font-size: 0.9rem; }
-html:not(.dark) .muted { color: #5a5f6d; }
+html:not(.dark) .muted { color: #5a5d66; }
 
 .stack > * + * { margin-top: 1.25rem; }
 .stack-sm > * + * { margin-top: 0.6rem; }
@@ -235,14 +238,14 @@ html:not(.dark) .muted { color: #5a5f6d; }
 .empty {
     padding: 3rem 1.5rem;
     text-align: center;
-    color: #a1a7b3;
-    background: #14171f;
-    border: 1px dashed #232833;
+    color: #9ca0a8;
+    background: #101114;
+    border: 1px dashed #1e1f24;
     border-radius: 16px;
 }
-html:not(.dark) .empty { background: #fff; border-color: #e7e7ec; }
+html:not(.dark) .empty { background: #fafbfc; border-color: #dcdde1; }
 
-.loading { padding: 3rem; text-align: center; color: #a1a7b3; }
+.loading { padding: 3rem; text-align: center; color: #9ca0a8; }
 
 video { display: block; max-width: 100%; }
 
