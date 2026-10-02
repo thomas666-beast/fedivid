@@ -109,6 +109,7 @@ watch(() => route.params.id, load)
           controls
           preload="metadata"
           :src="video.url"
+          :poster="video.poster_url"
           class="player"
         />
         <div v-else class="empty">No playable URL for this remote video.</div>
