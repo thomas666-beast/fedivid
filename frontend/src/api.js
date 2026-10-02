@@ -1,5 +1,11 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
 
+// Cache the session lookup for a short window. Feed pages mount N cards
+// at once, each of which calls getSession(). Without this, that's N
+// requests to /api/sessions/me for the same answer.
+let sessionCache = { value: undefined, timestamp: 0 }
+const SESSION_CACHE_MS = 1000
+
 export async function listVideos(username, cursor = null, limit = 50) {
   const params = new URLSearchParams({ limit: String(limit) })
   if (cursor) params.set('cursor', cursor)
@@ -43,10 +49,18 @@ export async function getFederatedFeed(cursor = null, limit = 50, tag = null) {
 }
 
 export async function getSession() {
+  const now = Date.now()
+  if (sessionCache.value !== undefined && now - sessionCache.timestamp < SESSION_CACHE_MS) {
+    return sessionCache.value
+  }
   const res = await fetch(`${API_BASE}/api/sessions/me`, { credentials: 'include' })
-  if (res.status === 401) return null
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return await res.json()
+  let value
+  if (res.status === 401) value = null
+  else if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  else value = await res.json()
+  sessionCache.value = value
+  sessionCache.timestamp = Date.now()
+  return value
 }
 
 export async function login(username, password) {
@@ -58,6 +72,8 @@ export async function login(username, password) {
   })
   if (res.status === 401) throw new Error('Invalid credentials')
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  sessionCache.value = undefined
+  sessionCache.timestamp = 0
   return await res.json()
 }
 
@@ -66,6 +82,8 @@ export async function logout() {
     method: 'DELETE',
     credentials: 'include',
   })
+  sessionCache.value = undefined
+  sessionCache.timestamp = 0
 }
 
 export async function uploadVideo(username, { title, description, file, tags = [] }) {
@@ -84,7 +102,6 @@ export async function uploadVideo(username, { title, description, file, tags = [
   if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`)
   return body
 }
-
 
 export async function getProfile(username) {
   const res = await fetch(
@@ -376,7 +393,7 @@ export async function changePassword(username, oldPassword, newPassword) {
 }
 
 export async function adminTables(token) {
-  const res = await fetch('/api/admin/tables', {
+  const res = await fetch(`${API_BASE}/api/admin/tables`, {
     headers: { 'X-Admin-Token': token },
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -385,7 +402,7 @@ export async function adminTables(token) {
 
 export async function adminTable(token, name, limit = 50, offset = 0) {
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
-  const res = await fetch(`/api/admin/table/${encodeURIComponent(name)}?${params}`, {
+  const res = await fetch(`${API_BASE}/api/admin/table/${encodeURIComponent(name)}?${params}`, {
     headers: { 'X-Admin-Token': token },
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -393,7 +410,7 @@ export async function adminTable(token, name, limit = 50, offset = 0) {
 }
 
 export async function adminWorkers(token) {
-  const res = await fetch('/api/admin/workers', {
+  const res = await fetch(`${API_BASE}/api/admin/workers`, {
     headers: { 'X-Admin-Token': token },
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
