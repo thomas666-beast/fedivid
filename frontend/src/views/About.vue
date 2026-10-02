@@ -55,7 +55,7 @@ onMounted(async () => {
           <a
             v-if="info.feed_url"
             :href="info.feed_url"
-            class="btn rss-btn"
+            class="rss-btn"
             target="_blank"
             rel="noopener"
             title="Subscribe via RSS"
@@ -202,16 +202,5 @@ html:not(.dark) .rules { color: #5a5f6d; }
 }
 @media (min-width: 1400px) {
     .feed { grid-template-columns: 1fr 1fr 1fr 1fr; }
-}
-
-.rss-btn:hover {
-    color: #f59e0b;
-    border-color: rgba(245, 158, 11, 0.4);
-    background: rgba(245, 158, 11, 0.08);
-}
-html:not(.dark) .rss-btn:hover {
-    color: #d97706;
-    border-color: rgba(217, 119, 6, 0.4);
-    background: rgba(217, 119, 6, 0.06);
 }
 </style>

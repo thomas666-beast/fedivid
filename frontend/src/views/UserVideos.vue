@@ -1,11 +1,12 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
 import { listVideos, getProfile, getSession, follow, unfollow, uploadAvatar, deleteAvatar } from '../api'
+import { bumpAvatarVersion } from '../lib/avatarBus'
 import VideoPreviewCard from '../components/VideoPreviewCard.vue'
 import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
 import { fmtCount } from '../utils/format'
-import { bumpAvatarVersion } from '../lib/avatarBus'
+
 import { useInfiniteScroll } from '../composables/useInfiniteScroll'
 
 const props = defineProps({ username: String })
@@ -123,7 +124,7 @@ watch(() => props.username, reload)
     <header v-if="profile" class="profile-card">
 
       <div class="profile-top">
-        <Avatar :username="username" size="lg" :cache-key="avatarVersion" />
+        <Avatar :username="username" size="lg" />
 
         <div class="profile-body">
           <h1 class="profile-name">@{{ username }}</h1>
@@ -316,35 +317,7 @@ html:not(.dark) .profile-actions { border-color: #e7e7ec; }
     gap: 0.5rem;
     padding-top: 1.25rem;
     border-top: 1px solid #232833;
+    margin-top: 1.25rem;
 }
 html:not(.dark) .subscribe-row { border-color: #e7e7ec; }
-
-.rss-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 0.9rem;
-    background: transparent;
-    border: 1px solid #232833;
-    color: #a1a7b3;
-    border-radius: 10px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.15s;
-}
-.rss-btn:hover {
-    color: #f59e0b;
-    border-color: rgba(245, 158, 11, 0.4);
-    background: rgba(245, 158, 11, 0.08);
-}
-html:not(.dark) .rss-btn {
-    border-color: #e7e7ec;
-    color: #5a5f6d;
-}
-html:not(.dark) .rss-btn:hover {
-    color: #d97706;
-    border-color: rgba(217, 119, 6, 0.4);
-    background: rgba(217, 119, 6, 0.06);
-}
 </style>
