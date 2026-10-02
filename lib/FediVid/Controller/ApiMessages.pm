@@ -190,8 +190,8 @@ sub thread ($c) {
     return $c->render(json => { error => 'unauthenticated' }, status => 401)
         unless $session_user;
 
-    my $base  = $c->config('base_url');
-    my $me    = "$base/users/$session_user";
+    my $base = $c->config('base_url');
+    my $me   = "$base/users/$session_user";
 
     my ($other_actor) = _normalize_recipient($c, $other);
     return $c->render(json => { error => 'not_found' }, status => 404)
@@ -207,8 +207,24 @@ sub thread ($c) {
         $me, $other_actor, $other_actor, $me
     )->hashes;
 
+    # Icon for the peer (remote actors only — local peers use /users/:name/avatar)
+    my $peer_icon;
+    if ($other_actor !~ m{\A\Q$base\E/users/}) {
+        my $row = $db->query(
+            'SELECT actor FROM remote_actors WHERE url = ?',
+            $other_actor
+        )->hash;
+        if ($row) {
+            my $doc = eval { decode_json($row->{actor}) } || {};
+            $peer_icon = ref $doc->{icon} eq 'HASH'
+                ? $doc->{icon}{url}
+                : ($doc->{icon} // undef);
+        }
+    }
+
     $c->render(json => {
         totalItems => scalar @$rows,
+        peer_icon  => $peer_icon,
         items      => [ map {
             {
                 id         => $_->{id} + 0,
@@ -317,6 +333,23 @@ sub conversations ($c) {
         }
     }
 
+    # Look up icons for remote peers (local peers use /users/:name/avatar)
+    my @remote_peers = grep { !m{\A\Q$base\E/users/} } keys %threads;
+    my %icons;
+    if (@remote_peers) {
+        my $ph = join(',', ('?') x @remote_peers);
+        my $rows = $db->query(
+            "SELECT url, actor FROM remote_actors WHERE url IN ($ph)",
+            @remote_peers
+        )->hashes;
+        for my $r (@$rows) {
+            my $doc = eval { decode_json($r->{actor}) } || {};
+            $icons{$r->{url}} = ref $doc->{icon} eq 'HASH'
+                ? $doc->{icon}{url}
+                : ($doc->{icon} // undef);
+        }
+    }
+
     my @items = sort { $b->{last_at} cmp $a->{last_at} } values %threads;
 
     $c->render(json => {
@@ -325,6 +358,7 @@ sub conversations ($c) {
             {
                 peer       => _short_actor($_->{peer}, $base),
                 peer_actor => $_->{peer},
+                peer_icon  => $icons{$_->{peer}},
                 last_body  => $_->{last_body},
                 last_at    => $_->{last_at},
                 unread     => $_->{unread},

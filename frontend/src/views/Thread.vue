@@ -17,6 +17,7 @@ const busy = ref(false)
 const error = ref(null)
 const threadEl = ref(null)
 const composerEl = ref(null)
+const peerIcon = ref(null)
 const page = ref(1)
 const perPage = 30
 let unsubscribe = null
@@ -56,6 +57,7 @@ async function load() {
 
     const data = await listThread(other.value)
     items.value = data.items || []
+    peerIcon.value = data.peer_icon || null
     page.value = 1
     await scrollToBottom()
 
@@ -163,7 +165,7 @@ watch(() => route.params.username, load)
       <RouterLink to="/messages" class="back-link" title="Back to messages">
         <Icon name="arrow-left" :size="18" />
       </RouterLink>
-      <Avatar :username="otherShort" size="md" />
+      <Avatar :username="otherShort" size="md" :src="peerIcon" />
       <div style="flex: 1; min-width: 0;">
         <div class="peer-name">@{{ otherDisplay }}</div>
         <div class="peer-status">Direct message</div>

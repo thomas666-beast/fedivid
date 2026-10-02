@@ -58,6 +58,7 @@ function onSocketMessage(msg) {
     items.value = [{
       peer,
       peer_actor: null,
+      peer_icon: null,
       last_body: msg.body,
       last_at: msg.created_at,
       unread: 1,
@@ -92,7 +93,7 @@ onBeforeUnmount(() => {
     <p v-else-if="error" class="error">{{ error }}</p>
 
     <div v-else-if="items.length === 0" class="empty">
-      <Icon name="message" :size="32" style="margin: 0 auto 0.75rem; display: block; color: #6a7180;" />
+      <Icon name="message" :size="32" style="margin: 0 auto 0.75rem; display: block; color: #6a6e78;" />
       <p style="margin: 0;">No messages yet.</p>
       <p class="muted" style="margin: 0.25rem 0 0;">Start a conversation with anyone on the Fediverse.</p>
     </div>
@@ -105,7 +106,7 @@ onBeforeUnmount(() => {
           :to="`/messages/thread/${c.peer}`"
           class="conv-row"
         >
-          <Avatar :username="c.peer" size="md" />
+          <Avatar :username="c.peer" size="md" :src="c.peer_icon || null" />
           <div class="conv-body">
             <div class="conv-head">
               <span class="conv-from">@{{ c.peer }}</span>
@@ -134,15 +135,15 @@ onBeforeUnmount(() => {
     align-items: center;
     gap: 1rem;
     padding: 0.9rem 1.1rem;
-    background: #14171f;
-    border: 1px solid #232833;
+    background: #101114;
+    border: 1px solid #1e1f24;
     border-radius: 14px;
     color: inherit;
     text-decoration: none;
     transition: border-color 0.15s, background 0.15s;
 }
-.conv-row:hover { border-color: #333a48; background: #181c26; }
-html:not(.dark) .conv-row { background: #fff; border-color: #e7e7ec; }
+.conv-row:hover { border-color: #2b2d34; background: #17181c; }
+html:not(.dark) .conv-row { background: #fafbfc; border-color: #dcdde1; }
 
 .conv-body { flex: 1; min-width: 0; }
 .conv-head {
@@ -152,12 +153,12 @@ html:not(.dark) .conv-row { background: #fff; border-color: #e7e7ec; }
     gap: 0.5rem;
     margin-bottom: 0.15rem;
 }
-.conv-from { font-weight: 700; color: #f4f4f7; }
-html:not(.dark) .conv-from { color: #0e0f14; }
-.conv-time { font-size: 0.75rem; color: #6a7180; flex-shrink: 0; }
+.conv-from { font-weight: 700; color: #f5f6f8; }
+html:not(.dark) .conv-from { color: #1a1b22; }
+.conv-time { font-size: 0.75rem; color: #6a6e78; flex-shrink: 0; }
 .conv-preview {
     margin: 0;
-    color: #a1a7b3;
+    color: #9ca0a8;
     font-size: 0.9rem;
     white-space: nowrap;
     overflow: hidden;
