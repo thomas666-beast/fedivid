@@ -63,7 +63,7 @@ onMounted(run)
         <RouterLink
           v-for="u in results.users"
           :key="u.username"
-          :to="`/users/${u.username}`"
+          :to="`/users/${encodeURIComponent(u.username)}`"
           class="card"
           style="display: flex; align-items: center; gap: 0.75rem; color: inherit;"
         >
@@ -80,7 +80,7 @@ onMounted(run)
         <RouterLink
           v-for="v in results.videos"
           :key="v.id"
-          :to="`/users/${v.username}`"
+          :to="`/u/${encodeURIComponent(v.username)}/v/${v.id}`"
           class="card"
           style="display: flex; align-items: center; gap: 0.75rem; color: inherit;"
         >
@@ -92,10 +92,23 @@ onMounted(run)
 
       <section v-if="results.comments.length" class="stack-sm">
         <h3>Comments</h3>
-        <div v-for="c in results.comments" :key="c.id" class="card">
-          <p style="margin: 0;">{{ c.body }}</p>
-          <p class="muted" style="margin: 0.25rem 0 0;">by {{ c.username }}</p>
-        </div>
+        <template v-for="c in results.comments" :key="c.id">
+          <RouterLink
+            v-if="c.video_id && c.video_user"
+            :to="`/u/${encodeURIComponent(c.video_user)}/v/${c.video_id}`"
+            class="card"
+            style="display: block; color: inherit;"
+          >
+            <p style="margin: 0;">{{ c.body }}</p>
+            <p class="muted" style="margin: 0.25rem 0 0;">
+              by {{ c.username }} · on "{{ c.video_title || 'video' }}"
+            </p>
+          </RouterLink>
+          <div v-else class="card">
+            <p style="margin: 0;">{{ c.body }}</p>
+            <p class="muted" style="margin: 0.25rem 0 0;">by {{ c.username }}</p>
+          </div>
+        </template>
       </section>
 
       <div
