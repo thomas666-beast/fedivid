@@ -62,7 +62,7 @@ while (1) {
     {
         my $tx = $db->begin;
         $row = $db->query(
-            "SELECT id, file_path, username
+            "SELECT id, file_path, username, activity_id
                FROM videos
               WHERE transcode_status = 'pending'
               ORDER BY id
@@ -142,9 +142,11 @@ while (1) {
 
     my $activity_row = $db->query(
         "SELECT activity FROM outbox_activities
-          WHERE username = ? AND activity::text LIKE ?
+          WHERE username = ?
+            AND activity->>'type' = 'Create'
+            AND activity->'object'->>'id' = ?
           ORDER BY id DESC LIMIT 1",
-        $row->{username}, "%/videos/%"
+        $row->{username}, $row->{activity_id}
     )->hash;
     if (!$activity_row) {
         debug_msg("no matching outbox activity");
