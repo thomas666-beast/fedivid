@@ -41,6 +41,7 @@ sub create ($c) {
 
     # Local target?
     my ($local_target) = $actor_url =~ m{\A\Q$base\E/users/([^/]+)\z};
+
     if ($local_target) {
         my $exists = $db->query(
             'SELECT 1 FROM users WHERE username = ?', $local_target
@@ -67,6 +68,11 @@ sub create ($c) {
                   VALUES (?, ?, NULL, TRUE)
              ON CONFLICT (local_user, remote_actor) DO NOTHING',
             $username, $actor_url
+        );
+
+        require FediVid::Notifications;
+        FediVid::Notifications::notify(
+            $db, $local_target, 'follow', "$base/users/$username", undef, undef
         );
 
         return $c->render(json => {
