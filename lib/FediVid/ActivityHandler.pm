@@ -254,6 +254,8 @@ sub _handle_follow ($ua, $db, $config, $username, $activity, $local_priv, $local
         unless $object_url eq $expected;
 
     my $remote_inbox;
+
+    # Try the cache first
     my $cached = $db->query(
         'SELECT actor FROM remote_actors WHERE url = ?',
         _strip_fragment($actor)
@@ -261,6 +263,15 @@ sub _handle_follow ($ua, $db, $config, $username, $activity, $local_priv, $local
     if ($cached) {
         my $doc = decode_json($cached->{actor});
         $remote_inbox = $doc->{inbox};
+    }
+
+    # Cache miss — fetch the actor document on demand so we can send the Accept.
+    if (!$remote_inbox) {
+        require FediVid::RemoteActor;
+        my ($doc, $err) = FediVid::RemoteActor::fetch($ua, $db, $actor);
+        if ($doc && $doc->{inbox}) {
+            $remote_inbox = $doc->{inbox};
+        }
     }
 
     $db->query(
@@ -422,9 +433,14 @@ sub _fallback_activity_id ($activity) {
     my $object = ref $activity->{object} eq 'HASH'
         ? $activity->{object}{id}
         : $activity->{object};
-    return "like:$actor:$object:" . time;
+    # Deterministic: same input always produces the same fallback ID.
+    # Some peers omit 'id' on Like activities; using a hash of the content
+    # (rather than time()) makes retries and duplicates collapse onto the
+    # same activity_id, so ON CONFLICT works as intended.
+    require Digest::SHA;
+    my $h = Digest::SHA::sha256_hex("like\x00$actor\x00$object");
+    return "urn:fedivid:like:$h";
 }
-
 sub _strip_fragment ($url) {
     (my $u = $url) =~ s/#.*\z//;
     return $u;

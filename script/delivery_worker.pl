@@ -13,6 +13,7 @@ my $db  = $app->pg->db;
 my $loop         = grep { $_ eq '--loop' } @ARGV;
 my $verbose      = grep { $_ eq '--verbose' } @ARGV;
 my $max_attempts = 5;
+my $lease_seconds = 300;   # how long a claimed row is invisible to other workers
 
 sub log_msg {
     my ($msg) = @_;
@@ -32,17 +33,33 @@ log_msg("delivery worker starting" . ($loop ? " (loop mode)" : ""));
 beat($db, 'delivery', 0);
 
 while (1) {
-    my $row = $db->query(
-        "SELECT id, username, inbox_url, activity, attempts
-           FROM deliveries
-          WHERE completed_at IS NULL
-            AND scheduled_at <= NOW()
-            AND attempts < ?
-          ORDER BY scheduled_at, id
-          LIMIT 1
-          FOR UPDATE SKIP LOCKED",
-        $max_attempts
-    )->hash;
+    # --- Claim a delivery inside a transaction ---
+    my $row;
+    {
+        my $tx = $db->begin;
+        $row = $db->query(
+            "SELECT id, username, inbox_url, activity, attempts
+               FROM deliveries
+              WHERE completed_at IS NULL
+                AND scheduled_at <= NOW()
+                AND attempts < ?
+              ORDER BY scheduled_at, id
+              LIMIT 1
+              FOR UPDATE SKIP LOCKED",
+            $max_attempts
+        )->hash;
+
+        if ($row) {
+            # Claim: push scheduled_at forward so other workers skip this row.
+            $db->query(
+                'UPDATE deliveries
+                    SET scheduled_at = NOW() + make_interval(secs => ?)
+                  WHERE id = ?',
+                $lease_seconds, $row->{id}
+            );
+        }
+        $tx->commit;
+    }
 
     if (!$row) {
         beat($db, 'delivery', 0);
@@ -99,8 +116,13 @@ while (1) {
 
     if ($ok) {
         log_msg("delivery $row->{id} delivered (${elapsed}s)");
+        # Reset scheduled_at so the row isn't stuck with the lease timestamp,
+        # then mark completed.
         $db->query(
-            'UPDATE deliveries SET completed_at = NOW(), attempts = attempts + 1
+            'UPDATE deliveries
+                SET completed_at = NOW(),
+                    attempts = attempts + 1,
+                    scheduled_at = NOW()
               WHERE id = ?',
             $row->{id}
         );

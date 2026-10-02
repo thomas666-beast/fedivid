@@ -79,7 +79,6 @@ sub outbox ($c) {
     my $rows = $db->query(
         "SELECT activity FROM outbox_activities
           WHERE username = ?
-            AND activity->>'type' = 'Create'
           ORDER BY published_at DESC
           LIMIT 50",
         $username
