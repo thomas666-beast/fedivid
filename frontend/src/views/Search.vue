@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { search } from '../api'
 import Icon from '../components/Icon.vue'
@@ -26,11 +26,23 @@ async function run() {
 }
 
 function submit() {
+  // Push the URL. The watcher below will do the actual fetch.
   router.push({ path: '/search', query: { q: q.value } })
-  run()
 }
 
 onMounted(run)
+
+// The URL is the source of truth: any change to ?q=... triggers a refetch,
+// whether it comes from direct URL edit, browser back/forward, or a push
+// from another view.
+watch(
+  () => route.query.q,
+  (newQ) => {
+    const value = newQ || ''
+    if (value !== q.value) q.value = value
+    run()
+  }
+)
 </script>
 
 <template>
@@ -101,7 +113,7 @@ onMounted(run)
           >
             <p style="margin: 0;">{{ c.body }}</p>
             <p class="muted" style="margin: 0.25rem 0 0;">
-              by {{ c.username }} · on "{{ c.video_title || 'video' }}"
+              by {{ c.username }}
             </p>
           </RouterLink>
           <div v-else class="card">

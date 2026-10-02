@@ -1,10 +1,10 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
+import { getSession, getLocalFeed, getMyBoosts } from '../api'
 import VideoPreviewCard from '../components/VideoPreviewCard.vue'
 import Icon from '../components/Icon.vue'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll'
-import { getSession, getLocalFeed, getMyBoosts } from '../api'
 
 const route = useRoute()
 const items = ref([])
@@ -38,7 +38,15 @@ async function reset() {
 
 onMounted(async () => {
   try {
-    myBoosts.value = await getMyBoosts(sess.username)
+    const sess = await getSession()
+  
+    if (sess) {
+      try {
+        myBoosts.value = await getMyBoosts(sess.username)
+      } catch { /* ignore */ }
+    }
+    await loadPage()
+    markReady()
   } catch (e) {
     error.value = e.message
   }

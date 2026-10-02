@@ -37,7 +37,14 @@ async function reset() {
 
 onMounted(async () => {
   try {
-    myBoosts.value = await getMyBoosts(sess.username)
+    const sess = await getSession()
+    if (sess) {
+      try {
+        myBoosts.value = await getMyBoosts(sess.username)
+      } catch { /* ignore */ }
+    }
+    await loadPage()
+    markReady()
   } catch (e) {
     error.value = e.message
   }
