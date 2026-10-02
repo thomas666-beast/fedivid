@@ -1,21 +1,11 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getSession, listThread, sendMessage, markThreadRead, openMessageSocket } from '../api'
+import { getSession, listThread, sendMessage, markThreadRead, deleteThread } from '../api'
+import { onMessage } from '../lib/messageBus'
 import { fmtChatTime } from '../utils/format'
 import Icon from '../components/Icon.vue'
 import Avatar from '../components/Avatar.vue'
-import { deleteThread } from '../api'
-
-async function deleteConversation() {
-  if (!confirm(`Delete this conversation with @${otherShort.value}? This only removes it from your view.`)) return
-  try {
-    await deleteThread(other.value)
-    router.push('/messages')
-  } catch (e) {
-    alert(e.message)
-  }
-}
 
 const route = useRoute()
 const router = useRouter()
@@ -28,7 +18,8 @@ const error = ref(null)
 const threadEl = ref(null)
 const page = ref(1)
 const perPage = 30
-let socket = null
+let unsubscribe = null
+let readTimer = null
 
 // route.params.username is decoded by Vue Router — "alice@localhost:3000"
 const other = computed(() => {
@@ -90,6 +81,12 @@ function onSocketMessage(msg) {
   })
   page.value = 1
   scrollToBottom()
+
+  // Debounce: mark read at most once per second as messages stream in.
+  clearTimeout(readTimer)
+  readTimer = setTimeout(() => {
+    markThreadRead(other.value).catch(() => { /* ignore */ })
+  }, 1000)
 }
 
 async function submit() {
@@ -122,13 +119,24 @@ function isMine(m) {
   return false
 }
 
+async function deleteConversation() {
+  if (!confirm(`Delete this conversation with @${otherShort.value}? This only removes it from your view.`)) return
+  try {
+    await deleteThread(other.value)
+    router.push('/messages')
+  } catch (e) {
+    alert(e.message)
+  }
+}
+
 onMounted(async () => {
   await load()
-  socket = openMessageSocket(onSocketMessage)
+  unsubscribe = onMessage(onSocketMessage)
 })
 
 onBeforeUnmount(() => {
-  if (socket) socket.close()
+  if (unsubscribe) unsubscribe()
+  if (readTimer) clearTimeout(readTimer)
 })
 
 watch(() => route.params.username, load)
