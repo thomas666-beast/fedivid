@@ -14,10 +14,14 @@ our @EXPORT_OK = qw(sign_request verify_request verify_digest);
 sub sign_request ($req, $key_id, $private_pem) {
     my $rsa = Crypt::OpenSSL::RSA->new_private_key($private_pem);
 
-    # Set the headers we will sign
     my $date = Mojo::Date->new(time)->to_string;
     $req->headers->header('Date' => $date);
-    $req->headers->header('Host' => $req->url->host_port);
+
+    # host_port returns undef when the URL has no explicit port.
+    # Fall back to the bare hostname so we always send a valid Host header.
+    my $host = $req->url->host_port;
+    $host = $req->url->host unless defined $host;
+    $req->headers->header('Host' => $host);
 
     # Digest is over the body (for POST). For GET there's no body.
     my $method = $req->method;
