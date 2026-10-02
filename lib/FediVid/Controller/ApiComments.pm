@@ -169,6 +169,48 @@ sub delete ($c) {
     $c->render(json => { ok => 1 });
 }
 
+sub delete_remote ($c) {
+    my $video_id   = $c->param('id');
+    my $comment_id = $c->param('comment_id');
+    my $db         = $c->pg->db;
+
+    return $c->render(json => { error => 'not_found' }, status => 404)
+        unless $video_id =~ /^\d+$/ && $comment_id =~ /^\d+$/;
+
+    my $session_user = eval {
+        require FediVid::Controller::Sessions;
+        FediVid::Controller::Sessions::_current_user($c);
+    };
+    return $c->render(json => { error => 'unauthorized' }, status => 401)
+        unless $session_user;
+
+    my $video = $db->query(
+        'SELECT id, object_id FROM remote_videos WHERE id = ?',
+        $video_id
+    )->hash;
+    return $c->render(json => { error => 'not_found' }, status => 404)
+        unless $video;
+
+    my $base = $c->config('base_url');
+    my $author_actor = "$base/users/$session_user";
+
+    my $row = $db->query(
+        'SELECT id, author_actor, is_remote, video_actor
+           FROM comments
+          WHERE id = ? AND video_actor = ?',
+        $comment_id, $video->{object_id}
+    )->hash;
+    return $c->render(json => { error => 'not_found' }, status => 404)
+        unless $row;
+
+    return $c->render(json => { error => 'forbidden' }, status => 403)
+        unless !$row->{is_remote} && $row->{author_actor} eq $author_actor;
+
+    $db->query('DELETE FROM comments WHERE id = ?', $row->{id});
+
+    $c->render(json => { ok => 1 });
+}
+
 sub _render_comment ($row, $base) {
     my $author = $row->{author_actor};
     my $display_author;

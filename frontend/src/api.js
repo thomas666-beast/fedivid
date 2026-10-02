@@ -197,6 +197,16 @@ export async function deleteComment(username, videoId, commentId) {
   return data
 }
 
+export async function deleteRemoteComment(videoId, commentId) {
+  const res = await fetch(
+    `${API_BASE}/api/remote-videos/${encodeURIComponent(videoId)}/comments/${encodeURIComponent(commentId)}`,
+    { method: 'DELETE', credentials: 'include' }
+  )
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+  return data
+}
+
 export async function sendMessage(from, to, body) {
   const res = await fetch(`${API_BASE}/api/messages`, {
     method: 'POST',

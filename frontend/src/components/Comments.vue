@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import {
   listComments, postComment, deleteComment,
-  listRemoteComments, postRemoteComment,
+  listRemoteComments, postRemoteComment, deleteRemoteComment,
   getSession,
 } from '../api'
 import Icon from './Icon.vue'
@@ -53,7 +53,11 @@ async function submit() {
 async function remove(id) {
   error.value = null
   try {
-    await deleteComment(props.username, props.videoId, id)
+    if (props.source === 'remote') {
+      await deleteRemoteComment(props.videoId, id)
+    } else {
+      await deleteComment(props.username, props.videoId, id)
+    }
     items.value = items.value.filter(i => i.id !== id)
   } catch (e) {
     error.value = e.message
