@@ -4,15 +4,20 @@ export function useInfiniteScroll(loader, options = {}) {
   const sentinel = ref(null)
   const loading = ref(false)
   const done = ref(false)
+  const error = ref(null)
   const ready = ref(false)   // ← gate: becomes true after the first manual load
   let observer = null
 
   async function loadNext() {
-    if (loading.value || done.value || !ready.value) return
+    if (loading.value || done.value || error.value || !ready.value) return
     loading.value = true
     try {
       const hasMore = await loader()
       if (hasMore === false) done.value = true
+      error.value = null
+    } catch (e) {
+      error.value = e
+      console.error('[infinite-scroll] loader failed:', e)
     } finally {
       loading.value = false
     }
@@ -30,6 +35,12 @@ export function useInfiniteScroll(loader, options = {}) {
     }, 0)
   }
 
+  // Allow the consumer to clear an error and try again
+  function retry() {
+    error.value = null
+    loadNext()
+  }
+
   onMounted(() => {
     observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) loadNext()
@@ -41,5 +52,5 @@ export function useInfiniteScroll(loader, options = {}) {
     if (observer) observer.disconnect()
   })
 
-  return { sentinel, loading, done, loadNext, markReady }
+  return { sentinel, loading, done, error, loadNext, markReady, retry }
 }
