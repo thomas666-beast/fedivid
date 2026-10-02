@@ -450,3 +450,9 @@ DROP INDEX videos_tags_idx;
 DROP INDEX remote_videos_tags_idx;
 ALTER TABLE videos DROP COLUMN tags;
 ALTER TABLE remote_videos DROP COLUMN tags;
+
+-- 31 up
+ALTER TABLE videos ADD COLUMN transcode_started_at TIMESTAMPTZ;
+
+-- 31 down
+ALTER TABLE videos DROP COLUMN transcode_started_at;

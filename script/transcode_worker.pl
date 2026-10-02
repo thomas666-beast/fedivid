@@ -16,6 +16,8 @@ my $base_dir = $app->config('upload_dir') // 'uploads';
 my $loop    = grep { $_ eq '--loop' } @ARGV;
 my $verbose = grep { $_ eq '--verbose' } @ARGV;
 
+my $stuck_minutes = 30;   # processing rows older than this are recovered
+
 sub log_msg {
     my ($msg) = @_;
     my @t = localtime;
@@ -29,32 +31,70 @@ sub debug_msg {
     log_msg("  [debug] $msg");
 }
 
+sub recover_stuck_rows {
+    my $result = $db->query(
+        "UPDATE videos
+            SET transcode_status = 'pending',
+                transcode_started_at = NULL
+          WHERE transcode_status = 'processing'
+            AND (transcode_started_at IS NULL
+                 OR transcode_started_at < NOW() - make_interval(mins => ?))
+          RETURNING id",
+        $stuck_minutes
+    )->arrays;
+    my $n = @$result;
+    log_msg("recovered $n stuck processing row(s)") if $n;
+}
+
 log_msg("transcode worker starting" . ($loop ? " (loop mode)" : ""));
+
+# Recover stuck rows on startup
+recover_stuck_rows();
 
 # Register heartbeat immediately so admin sees us right away
 beat($db, 'transcode', 0);
 
+my $last_recover = time;
+
 while (1) {
-    my $row = $db->query(
-        "SELECT id, file_path, username
-           FROM videos
-          WHERE transcode_status = 'pending'
-          ORDER BY id
-          LIMIT 1
-          FOR UPDATE SKIP LOCKED"
-    )->hash;
+    # --- Claim a video inside a transaction ---
+    my $row;
+    {
+        my $tx = $db->begin;
+        $row = $db->query(
+            "SELECT id, file_path, username
+               FROM videos
+              WHERE transcode_status = 'pending'
+              ORDER BY id
+              LIMIT 1
+              FOR UPDATE SKIP LOCKED"
+        )->hash;
+
+        if ($row) {
+            $db->query(
+                "UPDATE videos
+                    SET transcode_status = 'processing',
+                        transcode_started_at = NOW()
+                  WHERE id = ?",
+                $row->{id}
+            );
+        }
+        $tx->commit;
+    }
 
     if (!$row) {
         beat($db, 'transcode', 0);
+
+        # Periodically recover stuck rows (every 5 minutes)
+        if (time - $last_recover > 300) {
+            recover_stuck_rows();
+            $last_recover = time;
+        }
+
         last unless $loop;
         sleep 5;
         next;
     }
-
-    $db->query(
-        "UPDATE videos SET transcode_status = 'processing' WHERE id = ?",
-        $row->{id}
-    );
 
     my $hls_dir = path($base_dir, $row->{username}, 'hls', $row->{id})->to_string;
 
