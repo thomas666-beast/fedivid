@@ -35,6 +35,27 @@ function shortActor(actor) {
   return '@' + actor.replace(/^https?:\/\//, '')
 }
 
+function isLocalActor(actor) {
+  if (!actor) return false
+  const m = String(actor).match(/^https?:\/\/([^/]+)\/users\/([^\/]+)$/)
+  if (!m) return false
+  const actorHost = m[1].split(':')[0].toLowerCase()
+  const hereHost  = window.location.hostname.toLowerCase()
+  return actorHost === hereHost
+}
+
+function peerLink(actor) {
+  if (!actor) return '/'
+  const m = String(actor).match(/^https?:\/\/([^/]+)\/users\/([^\/]+)$/)
+  if (!m) return actor
+  const host = m[1]
+  const name = m[2]
+  if (isLocalActor(actor)) {
+    return `/users/${encodeURIComponent(name)}`
+  }
+  return `/remote/${name}@${host}`
+}
+
 async function doUnfollow(actor) {
   if (!confirm(`Unfollow ${shortActor(actor)}?`)) return
   busyActor.value = actor
@@ -74,7 +95,7 @@ onMounted(load)
         <Avatar :username="shortActor(f.remote_actor)" size="md" />
         <div class="following-body">
           <RouterLink
-            :to="`/users/${encodeURIComponent(shortActor(f.remote_actor))}`"
+            :to="peerLink(f.remote_actor)"
             class="following-name"
           >@{{ shortActor(f.remote_actor) }}</RouterLink>
           <p class="following-meta muted">
