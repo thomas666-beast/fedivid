@@ -182,26 +182,39 @@ async function share() {
         >#{{ t }}</RouterLink>
       </div>
 
-      <div class="vpc-actions">
-        <button class="vpc-action" :class="{ active: liked }" @click.stop="toggleLike">
-          <Icon name="heart" :size="15" />
-          <span>{{ likeCount > 0 ? fmtCount(likeCount) : 'Like' }}</span>
-        </button>
-        <button
-          class="vpc-action"
-          :class="{ active: boosted }"
-          :disabled="boostBusy"
-          @click.stop="toggleBoost"
-        >
-          <Icon name="repeat" :size="15" />
-          <span>{{ boostCount > 0 ? fmtCount(boostCount) : 'Boost' }}</span>
-        </button>
-        <RouterLink :to="videoLink + '#comments'" class="vpc-action">
-          <Icon name="comment" :size="15" /> <span>Comment</span>
-        </RouterLink>
-        <button class="vpc-action" @click.stop="share">
-          <Icon name="send" :size="15" /> <span>Share</span>
-        </button>
+      <div class="vpc-actions-wrap">
+        <div class="vpc-actions">
+          <button
+            class="vpc-action"
+            :class="{ active: liked }"
+            :title="liked ? 'Unlike' : 'Like'"
+            @click.stop="toggleLike"
+          >
+            <Icon name="heart" :size="15" />
+            <span class="vpc-action-label">{{ likeCount > 0 ? fmtCount(likeCount) : 'Like' }}</span>
+          </button>
+
+          <button
+            class="vpc-action"
+            :class="{ active: boosted }"
+            :disabled="boostBusy"
+            :title="boosted ? 'Unboost' : 'Boost'"
+            @click.stop="toggleBoost"
+          >
+            <Icon name="repeat" :size="15" />
+            <span class="vpc-action-label">{{ boostCount > 0 ? fmtCount(boostCount) : 'Boost' }}</span>
+          </button>
+
+          <RouterLink :to="videoLink + '#comments'" class="vpc-action" title="Comment">
+            <Icon name="comment" :size="15" />
+            <span class="vpc-action-label">Comment</span>
+          </RouterLink>
+
+          <button class="vpc-action" title="Share" @click.stop="share">
+            <Icon name="send" :size="15" />
+            <span class="vpc-action-label">Share</span>
+          </button>
+        </div>
       </div>
     </div>
   </article>
@@ -210,17 +223,17 @@ async function share() {
 <style scoped>
 .vpc {
     display: flex; flex-direction: column;
-    background: #14171f; border: 1px solid #232833;
+    background: #101114; border: 1px solid #1e1f24;
     border-radius: 16px; overflow: hidden;
     transition: border-color 0.15s, transform 0.15s;
 }
-.vpc:hover { border-color: #333a48; transform: translateY(-1px); }
-html:not(.dark) .vpc { background: #fff; border-color: #e7e7ec; }
+.vpc:hover { border-color: #2b2d34; transform: translateY(-1px); }
+html:not(.dark) .vpc { background: #fafbfc; border-color: #dcdde1; }
 
 .vpc-poster {
     position: relative; display: block;
     aspect-ratio: 16 / 9;
-    background: linear-gradient(135deg, #1c2029 0%, #2a1f4a 50%, #1c2029 100%);
+    background: linear-gradient(135deg, #17181c 0%, #2a1f4a 50%, #17181c 100%);
     text-decoration: none; overflow: hidden;
 }
 .vpc-poster-img {
@@ -267,41 +280,59 @@ html:not(.dark) .vpc { background: #fff; border-color: #e7e7ec; }
 }
 .vpc-body { padding: 1rem 1.1rem 1.1rem; }
 .vpc-title {
-    display: block; color: #f4f4f7; font-size: 1.05rem; font-weight: 700;
+    display: block; color: #f5f6f8; font-size: 1.05rem; font-weight: 700;
     line-height: 1.3; letter-spacing: -0.01em; text-decoration: none;
     margin-bottom: 0.5rem;
 }
 .vpc-title:hover { color: #8b5cf6; }
-html:not(.dark) .vpc-title { color: #0e0f14; }
+html:not(.dark) .vpc-title { color: #1a1b22; }
 .vpc-author {
     display: flex; align-items: center; gap: 0.5rem;
-    font-size: 0.85rem; color: #a1a7b3; margin-bottom: 0.6rem;
+    font-size: 0.85rem; color: #9ca0a8; margin-bottom: 0.6rem;
 }
-.vpc-author-name { color: #a1a7b3; text-decoration: none; font-weight: 600; }
+.vpc-author-name { color: #9ca0a8; text-decoration: none; font-weight: 600; }
 .vpc-author-name:hover { color: #8b5cf6; }
-.vpc-dot, .vpc-when { color: #6a7180; }
+.vpc-dot, .vpc-when { color: #6a6e78; }
 .vpc-description {
-    margin: 0 0 0.85rem; color: #a1a7b3;
+    margin: 0 0 0.85rem; color: #9ca0a8;
     font-size: 0.9rem; line-height: 1.5;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
     overflow: hidden;
 }
+
+/* Actions row: the wrapper is a container for the query below */
+.vpc-actions-wrap {
+    container-type: inline-size;
+    container-name: vpc-actions;
+}
 .vpc-actions {
     display: flex; gap: 0.25rem;
-    padding-top: 0.75rem; border-top: 1px solid #232833;
+    padding-top: 0.75rem; border-top: 1px solid #1e1f24;
 }
-html:not(.dark) .vpc-actions { border-color: #e7e7ec; }
+html:not(.dark) .vpc-actions { border-color: #dcdde1; }
 .vpc-action {
     display: inline-flex; align-items: center; gap: 0.35rem;
-    padding: 0.4rem 0.7rem; background: transparent; color: #a1a7b3;
+    padding: 0.4rem 0.7rem; background: transparent; color: #9ca0a8;
     border: 0; border-radius: 8px; font-family: inherit;
     font-size: 0.82rem; font-weight: 600; text-decoration: none; cursor: pointer;
     transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
 }
-.vpc-action:hover { background: #252a35; color: #f4f4f7; }
+.vpc-action:hover { background: #1f2025; color: #f5f6f8; }
 .vpc-action.active { color: #8b5cf6; }
 .vpc-action:disabled { opacity: 0.5; cursor: not-allowed; }
-html:not(.dark) .vpc-action:hover { background: #f3f3f6; color: #0e0f14; }
+html:not(.dark) .vpc-action:hover { background: #e7e9ec; color: #1a1b22; }
+
+/* When the card's inner width is too small for labels, hide them */
+@container vpc-actions (max-width: 340px) {
+    .vpc-action-label {
+        display: none;
+    }
+    .vpc-action {
+        padding: 0.4rem 0.55rem;
+        gap: 0;
+    }
+}
 
 .vpc-tags {
     display: flex;
