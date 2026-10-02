@@ -55,6 +55,7 @@ onMounted(async () => {
 watch(activeTag, async () => {
   await reset()
   await loadPage()
+  markReady()
 })
 
 function onBoostToggled({ url, boosted }) {

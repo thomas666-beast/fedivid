@@ -8,6 +8,8 @@ import { fmtCount } from '../utils/format'
 
 import { useInfiniteScroll } from '../composables/useInfiniteScroll'
 
+const props = defineProps({ username: String })
+
 const cursor = ref(null)
 
 async function loadMore() {
@@ -17,9 +19,7 @@ async function loadMore() {
   return !!data.next_cursor
 }
 
-const { sentinel, loading: loadingMore, done } = useInfiniteScroll(loadMore)
-
-const props = defineProps({ username: String })
+const { sentinel, loading: loadingMore, done, markReady } = useInfiniteScroll(loadMore)
 
 const items = ref([])
 const profile = ref(null)
@@ -53,9 +53,12 @@ async function removeAvatar() {
   }
 }
 
-async function load() {
+async function reload() {
   loading.value = true
   error.value = null
+  items.value = []
+  cursor.value = null
+  done.value = false
   try {
     const [data, prof, sess] = await Promise.all([
       listVideos(props.username, null, 50),
@@ -76,6 +79,8 @@ async function load() {
         myBoosts.value = new Set((list.items || []).map(a => a.object))
       } catch { /* ignore */ }
     }
+
+    markReady()
   } catch (e) {
     error.value = e.message
   } finally {
@@ -109,8 +114,8 @@ async function toggleFollow() {
   }
 }
 
-onMounted(load)
-watch(() => props.username, load)
+onMounted(reload)
+watch(() => props.username, reload)
 </script>
 
 <template>
@@ -305,44 +310,6 @@ html:not(.dark) .profile-actions { border-color: #e7e7ec; }
     gap: 0.5rem;
     padding-top: 1.25rem;
     border-top: 1px solid #232833;
-}
-html:not(.dark) .subscribe-row { border-color: #e7e7ec; }
-
-.rss-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 0.9rem;
-    background: transparent;
-    border: 1px solid #232833;
-    color: #a1a7b3;
-    border-radius: 10px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.15s;
-}
-.rss-btn:hover {
-    color: #f59e0b;
-    border-color: rgba(245, 158, 11, 0.4);
-    background: rgba(245, 158, 11, 0.08);
-}
-html:not(.dark) .rss-btn {
-    border-color: #e7e7ec;
-    color: #5a5f6d;
-}
-html:not(.dark) .rss-btn:hover {
-    color: #d97706;
-    border-color: rgba(217, 119, 6, 0.4);
-    background: rgba(217, 119, 6, 0.06);
-}
-
-.subscribe-row {
-    display: flex;
-    gap: 0.5rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid #232833;
-    margin-top: 1.25rem;
 }
 html:not(.dark) .subscribe-row { border-color: #e7e7ec; }
 
