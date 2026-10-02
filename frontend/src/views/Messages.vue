@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
-import { getSession, listConversations, openMessageSocket } from '../api'
+import { getSession, listConversations } from '../api'
+import { onMessage } from '../lib/messageBus'
 import { fmtTime } from '../utils/format'
 import Icon from '../components/Icon.vue'
 import Avatar from '../components/Avatar.vue'
@@ -13,7 +14,7 @@ const loading = ref(true)
 const error = ref(null)
 const page = ref(1)
 const perPage = 20
-let socket = null
+let unsubscribe = null
 
 const pageCount = computed(() => Math.max(1, Math.ceil(items.value.length / perPage)))
 const pagedItems = computed(() => {
@@ -37,10 +38,6 @@ async function load() {
   }
 }
 
-// The backend sends two formats for the same peer:
-//   - listConversations: "bob@remote.test" (user@host)
-//   - WebSocket sender: "@remote.test/users/bob"
-// Normalize to "user@host" so we can match them.
 function normalizePeer(s) {
   if (!s) return s
   const m = String(s).match(/^@?([^/@]+)\/users\/([^/]+)$/)
@@ -56,7 +53,6 @@ function onSocketMessage(msg) {
     existing.last_body = msg.body
     existing.last_at = msg.created_at
     existing.unread = (existing.unread || 0) + 1
-    // Bubble to top
     items.value = [existing, ...items.value.filter(c => c !== existing)]
   } else {
     items.value = [{
@@ -71,11 +67,11 @@ function onSocketMessage(msg) {
 
 onMounted(async () => {
   await load()
-  socket = openMessageSocket(onSocketMessage)
+  unsubscribe = onMessage(onSocketMessage)
 })
 
 onBeforeUnmount(() => {
-  if (socket) socket.close()
+  if (unsubscribe) unsubscribe()
 })
 </script>
 

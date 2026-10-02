@@ -1,17 +1,20 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { RouterView, RouterLink, useRouter } from 'vue-router'
-import { getSession, logout, getNotifications, getInstance } from './api'
+import { getSession, logout, getNotifications, getInstance, openMessageSocket } from './api'
+import { emitMessage } from './lib/messageBus'
 import { fmtBadge } from './utils/format'
 import Icon from './components/Icon.vue'
 import Avatar from './components/Avatar.vue'
 
 const router = useRouter()
 const me = ref(null)
-const unread = ref(0)
+const unread = ref(0)          // notification count from backend
+const unreadMessages = ref(0)  // live count of new messages since last visit
 const isDark = ref(localStorage.getItem('theme') !== 'light')
 const userMenu = ref(false)
 const instance = ref({ name: 'FediVid', description: '' })
+let socket = null
 
 // Notification-count refresh throttle: don't hit the network on every route change.
 let lastUnreadRefresh = 0
@@ -28,6 +31,7 @@ async function refresh(opts = {}) {
   me.value = await getSession()
   if (!me.value) {
     unread.value = 0
+    unreadMessages.value = 0
     return
   }
 
@@ -43,16 +47,37 @@ async function refresh(opts = {}) {
   }
 }
 
+function connectSocket() {
+  if (socket) return
+  socket = openMessageSocket(onSocketMessage)
+}
+
+function closeSocket() {
+  if (socket) {
+    try { socket.close() } catch { /* ignore */ }
+    socket = null
+  }
+}
+
+function onSocketMessage(msg) {
+  // Broadcast to any view that's listening (Messages, Thread)
+  emitMessage(msg)
+
+  // Bump the live badge if the user isn't currently looking at messages
+  const onMessages = router.currentRoute.value.path.startsWith('/messages')
+  if (!onMessages) {
+    unreadMessages.value += 1
+  }
+}
+
 async function doLogout() {
+  closeSocket()
   await logout()
   me.value = null
   userMenu.value = false
+  unread.value = 0
+  unreadMessages.value = 0
   router.push('/login')
-}
-
-function go(path) {
-  userMenu.value = false
-  router.push(path)
 }
 
 onMounted(async () => {
@@ -60,12 +85,30 @@ onMounted(async () => {
   instance.value = inst
   document.title = inst.name
 
-  refresh()
+  await refresh()
+  if (me.value) connectSocket()
 })
 
 router.afterEach((to) => {
   refresh({ force: to.path === '/notifications' })
+
+  // Clear the message badge when the user visits messages
+  if (to.path.startsWith('/messages')) {
+    unreadMessages.value = 0
+  }
 })
+
+// Clear the message badge the first time the socket sees a logged-in user
+// (refreshed state has me.value set by then)
+import { watch } from 'vue'
+watch(me, (val) => {
+  if (val) connectSocket()
+  else closeSocket()
+})
+
+onBeforeUnmount(closeSocket)
+
+const badgeTotal = () => unread.value + unreadMessages.value
 </script>
 
 <template>
@@ -101,6 +144,7 @@ router.afterEach((to) => {
 
           <RouterLink v-if="me" to="/messages" class="icon-btn" title="Messages">
             <Icon name="message" :size="18" />
+            <span v-if="unreadMessages" class="badge-dot">{{ fmtBadge(unreadMessages) }}</span>
           </RouterLink>
 
           <RouterLink v-if="me" to="/notifications" class="icon-btn" title="Notifications">
