@@ -21,7 +21,7 @@ async function loadPage() {
   return !!data.next_cursor
 }
 
-const { sentinel, loading, done } = useInfiniteScroll(loadPage)
+const { sentinel, loading, done, markReady } = useInfiniteScroll(loadPage)
 
 onMounted(async () => {
   const sess = await getSession()
@@ -37,6 +37,7 @@ onMounted(async () => {
   } catch { /* ignore */ }
 
   await loadPage()
+  markReady()
 })
 
 function onBoostToggled({ url, boosted }) {
