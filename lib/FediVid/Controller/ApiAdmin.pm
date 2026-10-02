@@ -262,6 +262,21 @@ sub table ($c) {
         $limit, $offset
     )->hashes;
 
+    # Redact sensitive columns before they leave the server.
+    my %sensitive = map { $_ => 1 } qw(
+        password_hash
+        private_key_pem
+        public_key_pem
+    );
+
+    for my $row (@$rows) {
+        for my $col (keys %$row) {
+            next unless $sensitive{$col};
+            next unless defined $row->{$col};
+            $row->{$col} = '[redacted]';
+        }
+    }
+
     $c->render(json => {
         table       => $name,
         totalItems  => $total + 0,
