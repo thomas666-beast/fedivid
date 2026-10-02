@@ -61,7 +61,7 @@ $t->get_ok('/api/admin/health',
   ->json_is('/videos/transcode_failed', 0)
   ->json_is('/remote_actors', 0);
 
-# --- Seeded failures show up ---
+# --- Seeded failures show up in health aggregate ---
 {
     $pg->db->query(
         "INSERT INTO deliveries
@@ -76,8 +76,67 @@ $t->get_ok('/api/admin/health',
       ->status_is(200)
       ->json_is('/deliveries/pending', 1)
       ->json_is('/deliveries/failed', 1)
-      ->json_is('/deliveries/max_attempts', 3)
-      ->json_is('/recent_failures/0/last_error', 'connection refused');
+      ->json_is('/deliveries/max_attempts', 3);
+}
+
+# --- Failures endpoint requires admin ---
+$t->get_ok('/api/admin/failures')
+  ->status_is(403);
+
+# --- Failures endpoint returns grouped rows ---
+{
+    $t->get_ok('/api/admin/failures',
+        { 'X-Admin-Token' => 'test-admin-token' })
+      ->status_is(200)
+      ->json_is('/totalItems', 1)
+      ->json_is('/items/0/inbox_url', 'https://x/inbox')
+      ->json_is('/items/0/last_error', 'connection refused')
+      ->json_is('/items/0/count', 1)
+      ->json_is('/items/0/max_attempts', 3);
+}
+
+# --- Multiple rows in the same group collapse ---
+{
+    $pg->db->query(
+        "INSERT INTO deliveries
+             (username, inbox_url, activity, activity_id, attempts, last_error, completed_at)
+         VALUES
+             ('alice', 'https://x/inbox', '{}'::jsonb, 'a3', 5, 'connection refused', NOW())"
+    );
+
+    $t->get_ok('/api/admin/failures',
+        { 'X-Admin-Token' => 'test-admin-token' })
+      ->status_is(200)
+      ->json_is('/totalItems', 1)
+      ->json_is('/items/0/count', 2);
+}
+
+# --- Search filters ---
+{
+    $t->get_ok('/api/admin/failures?search=nomatch',
+        { 'X-Admin-Token' => 'test-admin-token' })
+      ->status_is(200)
+      ->json_is('/totalItems', 0)
+      ->json_is('/items', []);
+
+    $t->get_ok('/api/admin/failures?search=x/inbox',
+        { 'X-Admin-Token' => 'test-admin-token' })
+      ->status_is(200)
+      ->json_is('/totalItems', 1);
+
+    $t->get_ok('/api/admin/failures?search=refused',
+        { 'X-Admin-Token' => 'test-admin-token' })
+      ->status_is(200)
+      ->json_is('/totalItems', 1);
+}
+
+# --- Failure rows endpoint ---
+{
+    $t->get_ok('/api/admin/failure-rows?inbox_url=https%3A%2F%2Fx%2Finbox&last_error=connection%20refused',
+        { 'X-Admin-Token' => 'test-admin-token' })
+      ->status_is(200)
+      ->json_has('/items')
+      ->json_is('/items/0/attempts', 5);  # newest first
 }
 
 # --- Delete user ---

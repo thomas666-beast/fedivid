@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { RouterView, RouterLink, useRouter } from 'vue-router'
 import { getSession, logout, getNotifications, getInstance, openMessageSocket } from './api'
 import { emitMessage } from './lib/messageBus'
@@ -9,14 +9,13 @@ import Avatar from './components/Avatar.vue'
 
 const router = useRouter()
 const me = ref(null)
-const unread = ref(0)          // notification count from backend
-const unreadMessages = ref(0)  // live count of new messages since last visit
+const unread = ref(0)
+const unreadMessages = ref(0)
 const isDark = ref(localStorage.getItem('theme') !== 'light')
 const userMenu = ref(false)
 const instance = ref({ name: 'FediVid', description: '' })
 let socket = null
 
-// Notification-count refresh throttle: don't hit the network on every route change.
 let lastUnreadRefresh = 0
 const UNREAD_REFRESH_MS = 30_000
 
@@ -60,10 +59,7 @@ function closeSocket() {
 }
 
 function onSocketMessage(msg) {
-  // Broadcast to any view that's listening (Messages, Thread)
   emitMessage(msg)
-
-  // Bump the live badge if the user isn't currently looking at messages
   const onMessages = router.currentRoute.value.path.startsWith('/messages')
   if (!onMessages) {
     unreadMessages.value += 1
@@ -91,24 +87,17 @@ onMounted(async () => {
 
 router.afterEach((to) => {
   refresh({ force: to.path === '/notifications' })
-
-  // Clear the message badge when the user visits messages
   if (to.path.startsWith('/messages')) {
     unreadMessages.value = 0
   }
 })
 
-// Clear the message badge the first time the socket sees a logged-in user
-// (refreshed state has me.value set by then)
-import { watch } from 'vue'
 watch(me, (val) => {
   if (val) connectSocket()
   else closeSocket()
 })
 
 onBeforeUnmount(closeSocket)
-
-const badgeTotal = () => unread.value + unreadMessages.value
 </script>
 
 <template>
@@ -363,7 +352,7 @@ html:not(.dark) .icon-btn:hover { background: #f3f3f6; color: #0e0f14; }
 .main {
     flex: 1;
     width: 100%;
-    max-width: 1100px;
+    max-width: 1000px;
     margin: 0 auto;
     padding: 2rem 1.5rem 4rem;
 }

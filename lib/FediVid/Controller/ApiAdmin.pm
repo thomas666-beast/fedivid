@@ -115,14 +115,6 @@ sub health ($c) {
         "SELECT COUNT(*) AS n FROM remote_actors"
     )->hash->{n};
 
-    my $recent_failures = $db->query(
-        "SELECT username, inbox_url, attempts, last_error, scheduled_at
-           FROM deliveries
-          WHERE last_error IS NOT NULL
-          ORDER BY scheduled_at DESC
-          LIMIT 20"
-    )->hashes;
-
     $c->render(json => {
         deliveries => {
             pending   => $deliveries->{pending} + 0,
@@ -135,9 +127,88 @@ sub health ($c) {
             transcode_pending => $pending_videos + 0,
             transcode_failed  => $failed_videos + 0,
         },
-        remote_actors   => $remote_actors + 0,
-        recent_failures => $recent_failures,
+        remote_actors => $remote_actors + 0,
     });
+}
+
+sub failures ($c) {
+    return _require_admin($c) unless _is_admin($c);
+
+    my $db     = $c->pg->db;
+    my $search = $c->param('search') // '';
+    my $limit  = $c->param('limit')  // 50;
+    my $offset = $c->param('offset') // 0;
+
+    $limit  = 50 unless $limit  =~ /^\d+$/ && $limit >= 1 && $limit <= 200;
+    $offset = 0  unless $offset =~ /^\d+$/ && $offset >= 0;
+
+    my @params;
+    my $where = " WHERE last_error IS NOT NULL ";
+    if (length $search) {
+        $where .= " AND (inbox_url ILIKE ? OR last_error ILIKE ? OR username ILIKE ?) ";
+        push @params, "%$search%", "%$search%", "%$search%";
+    }
+
+    # Grouped rows, paginated by group
+    my $sql = "
+        SELECT
+            inbox_url,
+            last_error,
+            MIN(username)     AS username,
+            COUNT(*)          AS count,
+            MAX(attempts)     AS max_attempts,
+            MAX(scheduled_at) AS last_at
+          FROM deliveries
+          $where
+          GROUP BY inbox_url, last_error
+          ORDER BY MAX(scheduled_at) DESC
+          LIMIT ? OFFSET ?";
+
+    my $rows = $db->query($sql, @params, $limit, $offset)->hashes;
+
+    # Total number of *groups* (used for pagination)
+    my $total = $db->query(
+        "SELECT COUNT(*) AS n FROM (
+             SELECT 1 FROM deliveries $where GROUP BY inbox_url, last_error
+         ) AS g",
+        @params
+    )->hash->{n};
+
+    $c->render(json => {
+        totalItems  => $total + 0,
+        limit       => $limit + 0,
+        offset      => $offset + 0,
+        has_more    => ($offset + $limit < $total) ? 1 : 0,
+        next_offset => $offset + $limit,
+        search      => $search,
+        items       => $rows,
+    });
+}
+
+sub failure_rows ($c) {
+    return _require_admin($c) unless _is_admin($c);
+
+    my $inbox = $c->param('inbox_url') // '';
+    my $error = $c->param('last_error') // '';
+    my $limit = $c->param('limit') // 100;
+
+    $limit = 100 unless defined $limit && $limit =~ /^\d+$/ && $limit >= 1 && $limit <= 500;
+    $limit = $limit + 0;
+
+    return $c->render(json => { items => [] })
+        unless length $inbox && length $error;
+
+    my $db = $c->pg->db;
+    my $rows = $db->query(
+        "SELECT id, username, activity_id, attempts, scheduled_at
+           FROM deliveries
+          WHERE last_error = ? AND inbox_url = ?
+          ORDER BY scheduled_at DESC
+          LIMIT ?",
+        $error, $inbox, $limit
+    )->hashes;
+
+    $c->render(json => { items => $rows });
 }
 
 sub delete_user ($c) {
@@ -204,22 +275,21 @@ sub tables ($c) {
     my $db = $c->pg->db;
 
     my $rows = $db->query(
-        "SELECT tablename
-           FROM pg_tables
-          WHERE schemaname = 'public'
-          ORDER BY tablename"
-    )->arrays;
+        "SELECT c.relname AS tablename,
+                GREATEST(c.reltuples::bigint, 0) AS approx_count
+           FROM pg_class c
+           JOIN pg_namespace n ON n.oid = c.relnamespace
+          WHERE n.nspname = 'public'
+            AND c.relkind = 'r'
+            AND c.relname NOT IN ('mojo_migrations', 'rate_limits')
+          ORDER BY c.relname"
+    )->hashes;
 
     my @tables;
     for my $r (@$rows) {
-        my $name = $r->[0];
-        next if $name eq 'mojo_migrations';
-        next if $name eq 'rate_limits';
-
-        my $count = $db->query("SELECT COUNT(*) AS n FROM \"$name\"")->hash->{n};
         push @tables, {
-            name  => $name,
-            count => $count + 0,
+            name  => $r->{tablename},
+            count => $r->{approx_count} + 0,
         };
     }
 
@@ -397,7 +467,7 @@ sub enable_user ($c) {
     );
 
     $c->render(json => { ok => 1, username => $username, disabled => 0 });
-} 
+}
 
 sub _now_iso () {
     require POSIX;

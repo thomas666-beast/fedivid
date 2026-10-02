@@ -259,6 +259,10 @@ sub _routes_admin ($r) {
 
     $r->post('/api/admin/users/:username/disable')->to('api_admin#disable_user');
     $r->post('/api/admin/users/:username/enable')->to('api_admin#enable_user');
+
+    # NEW
+    $r->get('/api/admin/failures')->to('api_admin#failures');
+    $r->get('/api/admin/failure-rows')->to('api_admin#failure_rows');
 }
 
 sub _routes_feeds ($r) {

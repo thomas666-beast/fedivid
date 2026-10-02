@@ -456,3 +456,11 @@ ALTER TABLE videos ADD COLUMN transcode_started_at TIMESTAMPTZ;
 
 -- 31 down
 ALTER TABLE videos DROP COLUMN transcode_started_at;
+
+-- 32 up
+CREATE INDEX deliveries_failed_recent_idx
+    ON deliveries (scheduled_at DESC)
+    WHERE last_error IS NOT NULL;
+
+-- 32 down
+DROP INDEX deliveries_failed_recent_idx;

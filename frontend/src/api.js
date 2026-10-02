@@ -571,3 +571,30 @@ export async function deleteMessage(id) {
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
   return data
 }
+
+export async function adminFailures(token, { search = '', limit = 50, offset = 0 } = {}) {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  })
+  if (search) params.set('search', search)
+
+  const res = await fetch(`${API_BASE}/api/admin/failures?${params}`, {
+    headers: { 'X-Admin-Token': token },
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return await res.json()
+}
+
+export async function adminFailureRows(token, inboxUrl, lastError, limit = 100) {
+  const params = new URLSearchParams({
+    inbox_url: inboxUrl,
+    last_error: lastError,
+    limit: String(limit),
+  })
+  const res = await fetch(`${API_BASE}/api/admin/failure-rows?${params}`, {
+    headers: { 'X-Admin-Token': token },
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return await res.json()
+}
