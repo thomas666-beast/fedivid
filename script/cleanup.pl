@@ -33,6 +33,21 @@ say $apply ? "=== APPLY MODE ===" : "=== DRY RUN (pass --apply to delete) ===";
     }
 }
 
+# --- 2. Expired rate-limit windows ---
+{
+    my $count = $db->query(
+        "SELECT COUNT(*) AS n FROM rate_limits
+          WHERE window_start < NOW() - INTERVAL '1 hour'"
+    )->hash->{n};
+    say "Rate-limit rows older than 1 hour: $count";
+    if ($apply && $count) {
+        $db->query(
+            "DELETE FROM rate_limits
+              WHERE window_start < NOW() - INTERVAL '1 hour'"
+        );
+    }
+}
+
 # --- 3. Seen notifications older than 30 days ---
 {
     my $count = $db->query(
@@ -70,14 +85,19 @@ say $apply ? "=== APPLY MODE ===" : "=== DRY RUN (pass --apply to delete) ===";
     unless (-d $base_dir) {
         say "Upload dir does not exist: skipping file cleanup";
     } else {
-        my $known = $db->query(
+        # Known video files
+        my $known_video = $db->query(
             'SELECT file_path FROM videos WHERE file_path IS NOT NULL'
         )->arrays->map(sub { $_->[0] })->to_array;
-        my %known = map { $_ => 1 } @$known;
+
+        # Known avatar files
+        my $known_avatar = $db->query(
+            'SELECT avatar_path FROM users WHERE avatar_path IS NOT NULL'
+        )->arrays->map(sub { $_->[0] })->to_array;
+
+        my %known = map { $_ => 1 } (@$known_video, @$known_avatar);
 
         my @orphans;
-        my $root_abs = path($base_dir)->to_abs->to_string;
-
         File::Find::find({
             no_chdir => 1,
             wanted   => sub {
