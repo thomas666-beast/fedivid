@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { avatarState } from '../lib/avatarBus'
 
 const props = defineProps({
   username: { type: String, required: true },
@@ -11,8 +12,6 @@ const fontSizes = { sm: '0.75rem', md: '1rem', lg: '1.75rem' }
 
 const failed = ref(false)
 
-// Reset the failure state when the username changes — the new user might
-// have a working avatar.
 watch(() => props.username, () => { failed.value = false })
 
 const initial = computed(() => {
@@ -24,12 +23,22 @@ const initial = computed(() => {
 const avatarUrl = computed(() => {
   if (failed.value) return null
   const u = (props.username || '').replace(/^@/, '')
-  // Remote actors don't have local avatars yet
   if (u.includes('/users/') || u.includes('@')) return null
-  return `/users/${encodeURIComponent(u)}/avatar`
+  const base = `/users/${encodeURIComponent(u)}/avatar`
+  // Only bust the cache for the user whose avatar just changed.
+  if (avatarState.username === u) {
+    return `${base}?v=${avatarState.version}`
+  }
+  return base
 })
 
 const showFallback = computed(() => !avatarUrl.value)
+
+// When our own avatar changes, reset the failed flag so we retry loading.
+watch(
+  () => avatarState.version,
+  () => { failed.value = false }
+)
 </script>
 
 <template>

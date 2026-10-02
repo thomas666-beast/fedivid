@@ -5,7 +5,7 @@ import VideoPreviewCard from '../components/VideoPreviewCard.vue'
 import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
 import { fmtCount } from '../utils/format'
-
+import { bumpAvatarVersion } from '../lib/avatarBus'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll'
 
 const props = defineProps({ username: String })
@@ -37,7 +37,7 @@ async function onAvatarPick(e) {
   if (!file) return
   try {
     await uploadAvatar(me.value.username, file)
-    window.location.reload()
+    bumpAvatarVersion(me.value.username)
   } catch (err) {
     alert(err.message)
   }
@@ -47,7 +47,7 @@ async function removeAvatar() {
   if (!confirm('Remove your avatar?')) return
   try {
     await deleteAvatar(me.value.username)
-    window.location.reload()
+    bumpAvatarVersion(me.value.username)
   } catch (err) {
     alert(err.message)
   }
@@ -123,7 +123,7 @@ watch(() => props.username, reload)
     <header v-if="profile" class="profile-card">
 
       <div class="profile-top">
-        <Avatar :username="username" size="lg" />
+        <Avatar :username="username" size="lg" :cache-key="avatarVersion" />
 
         <div class="profile-body">
           <h1 class="profile-name">@{{ username }}</h1>
