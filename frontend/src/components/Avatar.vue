@@ -5,6 +5,10 @@ import { avatarState } from '../lib/avatarBus'
 const props = defineProps({
   username: { type: String, required: true },
   size:     { type: String, default: 'md' },
+  // Optional explicit image URL. When set, it takes priority over the
+  // local /users/:name/avatar path. Used for remote actors whose avatar
+  // URL points at another instance.
+  src:      { type: String, default: null },
 })
 
 const sizes = { sm: '1.75rem', md: '2.5rem', lg: '4.5rem' }
@@ -13,6 +17,7 @@ const fontSizes = { sm: '0.75rem', md: '1rem', lg: '1.75rem' }
 const failed = ref(false)
 
 watch(() => props.username, () => { failed.value = false })
+watch(() => props.src,      () => { failed.value = false })
 
 const initial = computed(() => {
   const u = (props.username || '').replace(/^@/, '')
@@ -22,10 +27,15 @@ const initial = computed(() => {
 
 const avatarUrl = computed(() => {
   if (failed.value) return null
+
+  // Explicit src always wins (used for remote actors).
+  if (props.src) return props.src
+
   const u = (props.username || '').replace(/^@/, '')
+  // Local users only. Remote users need the src prop.
   if (u.includes('/users/') || u.includes('@')) return null
+
   const base = `/users/${encodeURIComponent(u)}/avatar`
-  // Only bust the cache for the user whose avatar just changed.
   if (avatarState.username === u) {
     return `${base}?v=${avatarState.version}`
   }
@@ -34,7 +44,6 @@ const avatarUrl = computed(() => {
 
 const showFallback = computed(() => !avatarUrl.value)
 
-// When our own avatar changes, reset the failed flag so we retry loading.
 watch(
   () => avatarState.version,
   () => { failed.value = false }

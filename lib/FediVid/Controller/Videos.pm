@@ -183,6 +183,15 @@ sub _persist_video ($c, $user, $db, $username, $meta) {
 
     my $poster_url = "$base/users/$username/videos/$row->{id}/hls/poster.jpg";
 
+    # Build the AP `tag` array so federated peers receive hashtags.
+    my @tag_objects = map {
+        {
+            type => 'Hashtag',
+            name => "#$_",
+            href => "$base/tags/$_",
+        }
+    } @{ $meta->{tags} || [] };
+
     my $activity = {
         '@context' => 'https://www.w3.org/ns/activitystreams',
         id         => "$base/users/$username/activities/" . time . '-' . $row->{id},
@@ -205,6 +214,8 @@ sub _persist_video ($c, $user, $db, $username, $meta) {
                 type => 'Image',
                 url  => $poster_url,
             },
+            # NEW: include hashtags in the outgoing activity
+            (scalar @tag_objects ? (tag => \@tag_objects) : ()),
         },
     };
 

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getRemoteActor, getSession, follow, unfollow } from '../api'
 import { fmtCount, fmtTime } from '../utils/format'
 import VideoPreviewCard from '../components/VideoPreviewCard.vue'
+import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
 
 const route = useRoute()
@@ -80,9 +81,11 @@ watch(() => route.params.handle, load)
 
     <template v-else-if="actor">
       <header class="remote-header">
-        <div class="remote-avatar">
-          {{ (actor.name || '?')[0].toUpperCase() }}
-        </div>
+        <Avatar
+          :username="actor.handle || actor.actor_url"
+          size="lg"
+          :src="actor.icon || null"
+        />
 
         <div class="remote-body">
           <h1 class="remote-name">{{ actor.name }}</h1>
@@ -138,26 +141,12 @@ watch(() => route.params.handle, load)
     align-items: center;
     gap: 1.5rem;
     padding: 1.75rem;
-    background: #14171f;
-    border: 1px solid #232833;
+    background: #101114;
+    border: 1px solid #1e1f24;
     border-radius: 20px;
     flex-wrap: wrap;
 }
-html:not(.dark) .remote-header { background: #fff; border-color: #e7e7ec; }
-
-.remote-avatar {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 72px;
-    height: 72px;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    color: white;
-    border-radius: 9999px;
-    font-weight: 800;
-    font-size: 1.75rem;
-    flex-shrink: 0;
-}
+html:not(.dark) .remote-header { background: #fafbfc; border-color: #dcdde1; }
 
 .remote-body { flex: 1; min-width: 0; }
 .remote-name {
@@ -178,15 +167,15 @@ html:not(.dark) .remote-header { background: #fff; border-color: #e7e7ec; }
 
 .remote-summary {
     padding: 1rem 1.25rem;
-    background: #14171f;
-    border: 1px solid #232833;
+    background: #101114;
+    border: 1px solid #1e1f24;
     border-radius: 14px;
-    color: #a1a7b3;
+    color: #9ca0a8;
     line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
 }
-html:not(.dark) .remote-summary { background: #fff; border-color: #e7e7ec; }
+html:not(.dark) .remote-summary { background: #fafbfc; border-color: #dcdde1; }
 
 .feed { display: grid; gap: 1.25rem; }
 @media (min-width: 640px) {
