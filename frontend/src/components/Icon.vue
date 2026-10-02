@@ -26,6 +26,9 @@ const paths = {
   menu:       'M3 12h18 M3 6h18 M3 18h18',
   logout:     'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9',
   shield:     'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+  'arrow-left': 'M19 12H5 M12 19l-7-7 7-7',
+  'chevron-down': 'M6 9l6 6 6-6',
+  'chevron-up':   'M18 15l-6-6-6 6',
 }
 
 const path = paths[props.name] || ''

@@ -16,6 +16,7 @@ const draft = ref('')
 const busy = ref(false)
 const error = ref(null)
 const threadEl = ref(null)
+const composerEl = ref(null)
 const page = ref(1)
 const perPage = 30
 let unsubscribe = null
@@ -103,12 +104,26 @@ async function submit() {
       created_at: created.created_at,
     })
     draft.value = ''
+    resetComposerHeight()
     page.value = 1
     await scrollToBottom()
   } catch (e) {
     error.value = e.message
   } finally {
     busy.value = false
+  }
+}
+
+// Auto-grow the composer textarea up to 8rem (128px).
+function autoGrow(e) {
+  const el = e.target
+  el.style.height = 'auto'
+  el.style.height = Math.min(el.scrollHeight, 128) + 'px'
+}
+
+function resetComposerHeight() {
+  if (composerEl.value) {
+    composerEl.value.style.height = 'auto'
   }
 }
 
@@ -145,8 +160,8 @@ watch(() => route.params.username, load)
 <template>
   <div class="thread-page">
     <div class="thread-header">
-      <RouterLink to="/messages" class="back-link">
-        <Icon name="menu" :size="18" />
+      <RouterLink to="/messages" class="back-link" title="Back to messages">
+        <Icon name="arrow-left" :size="18" />
       </RouterLink>
       <Avatar :username="otherShort" size="md" />
       <div style="flex: 1; min-width: 0;">
@@ -184,10 +199,12 @@ watch(() => route.params.username, load)
 
     <form v-if="me" @submit.prevent="submit" class="composer">
       <textarea
+        ref="composerEl"
         v-model="draft"
         rows="1"
         maxlength="5000"
         placeholder="Write a message…"
+        @input="autoGrow"
         @keydown.enter.exact.prevent="submit"
       ></textarea>
       <button type="submit" class="send-btn" :disabled="busy || !draft.trim()">
@@ -205,21 +222,21 @@ watch(() => route.params.username, load)
     flex-direction: column;
     height: calc(100vh - 8rem);
     max-height: 780px;
-    border: 1px solid #232833;
+    border: 1px solid #1e1f24;
     border-radius: 20px;
     overflow: hidden;
-    background: #14171f;
+    background: #101114;
 }
-html:not(.dark) .thread-page { background: #fff; border-color: #e7e7ec; }
+html:not(.dark) .thread-page { background: #fafbfc; border-color: #dcdde1; }
 
 .thread-header {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid #232833;
+    border-bottom: 1px solid #1e1f24;
 }
-html:not(.dark) .thread-header { border-color: #e7e7ec; }
+html:not(.dark) .thread-header { border-color: #dcdde1; }
 
 .back-link {
     display: inline-flex;
@@ -227,15 +244,16 @@ html:not(.dark) .thread-header { border-color: #e7e7ec; }
     justify-content: center;
     width: 32px;
     height: 32px;
-    color: #a1a7b3;
+    color: #9ca0a8;
     text-decoration: none;
     border-radius: 8px;
-    transform: rotate(180deg);
+    transition: background 0.15s, color 0.15s;
 }
-.back-link:hover { background: #252a35; color: #f4f4f7; }
+.back-link:hover { background: #1f2025; color: #f5f6f8; }
+html:not(.dark) .back-link:hover { background: #e7e9ec; color: #1a1b22; }
 
 .peer-name { font-weight: 700; font-size: 0.95rem; }
-.peer-status { font-size: 0.75rem; color: #6a7180; }
+.peer-status { font-size: 0.75rem; color: #6a6e78; }
 
 .thread-scroll {
     flex: 1;
@@ -253,12 +271,12 @@ html:not(.dark) .thread-header { border-color: #e7e7ec; }
     gap: 1rem;
     padding-bottom: 0.5rem;
     margin-bottom: 0.5rem;
-    border-bottom: 1px solid #232833;
+    border-bottom: 1px solid #1e1f24;
 }
-html:not(.dark) .pager { border-color: #e7e7ec; }
+html:not(.dark) .pager { border-color: #dcdde1; }
 
 .empty-thread {
-    color: #6a7180;
+    color: #6a6e78;
     text-align: center;
     margin: auto;
     font-size: 0.9rem;
@@ -281,13 +299,13 @@ html:not(.dark) .pager { border-color: #e7e7ec; }
     border-bottom-right-radius: 6px;
 }
 .msg-theirs .msg-bubble {
-    background: #1c2029;
-    color: #f4f4f7;
+    background: #17181c;
+    color: #f5f6f8;
     border-bottom-left-radius: 6px;
 }
 html:not(.dark) .msg-theirs .msg-bubble {
-    background: #f3f3f6;
-    color: #0e0f14;
+    background: #e7e9ec;
+    color: #1a1b22;
 }
 
 .msg-body { margin: 0; font-size: 0.95rem; }
@@ -303,9 +321,9 @@ html:not(.dark) .msg-theirs .msg-bubble {
     gap: 0.5rem;
     align-items: flex-end;
     padding: 0.75rem 1rem;
-    border-top: 1px solid #232833;
+    border-top: 1px solid #1e1f24;
 }
-html:not(.dark) .composer { border-color: #e7e7ec; }
+html:not(.dark) .composer { border-color: #dcdde1; }
 
 .composer textarea {
     flex: 1;
@@ -314,6 +332,8 @@ html:not(.dark) .composer { border-color: #e7e7ec; }
     padding: 0.55rem 0.9rem;
     border-radius: 20px;
     resize: none;
+    overflow-y: auto;
+    line-height: 1.45;
 }
 
 .send-btn {
