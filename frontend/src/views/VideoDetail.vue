@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getSession, likeVideo, unlikeVideo, likeStatus, boost, unboost, updateVideo, deleteVideo } from '../api'
 import { fmtCount, fmtTime } from '../utils/format'
@@ -19,6 +19,7 @@ const liked = ref(false)
 const boosted = ref(false)
 const boostBusy = ref(false)
 const menuOpen = ref(false)
+const ownerMenuWrap = ref(null)
 const editing = ref(false)
 const editTitle = ref('')
 const editDescription = ref('')
@@ -137,7 +138,23 @@ async function doDelete() {
   }
 }
 
-onMounted(load)
+function handleDocumentClick(e) {
+  if (!menuOpen.value) return
+  const el = ownerMenuWrap.value
+  if (el && !el.contains(e.target)) {
+    menuOpen.value = false
+  }
+}
+
+onMounted(() => {
+  load()
+  document.addEventListener('click', handleDocumentClick)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
+})
+
 watch(() => [route.params.username, route.params.id], load)
 </script>
 
@@ -164,8 +181,8 @@ watch(() => [route.params.username, route.params.id], load)
             {{ video.title || '(untitled)' }}
           </h1>
 
-          <div v-if="isOwner" style="position: relative;">
-            <button class="btn btn-ghost btn-sm" @click="menuOpen = !menuOpen">
+          <div v-if="isOwner" ref="ownerMenuWrap" style="position: relative;">
+            <button class="btn btn-ghost btn-sm" @click.stop="menuOpen = !menuOpen">
               <Icon name="settings" :size="16" />
             </button>
             <div v-if="menuOpen" class="owner-menu" @click="menuOpen = false">
