@@ -85,6 +85,7 @@ sub _faststart ($input) {
         '-i', $input,
         '-c', 'copy',
         '-movflags', 'faststart',
+        '-f', 'mp4',
         $tmp,
     );
     $exit >>= 8;
