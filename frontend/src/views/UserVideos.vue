@@ -299,9 +299,15 @@ html:not(.dark) .stat-value { color: #0e0f14; }
 }
 html:not(.dark) .profile-actions { border-color: #e7e7ec; }
 
-.feed { display: grid; gap: 1.5rem; }
-@media (min-width: 760px) {
+.feed { display: grid; gap: 1.25rem; }
+@media (min-width: 640px) {
     .feed { grid-template-columns: 1fr 1fr; }
+}
+@media (min-width: 900px) {
+    .feed { grid-template-columns: 1fr 1fr 1fr; }
+}
+@media (min-width: 1400px) {
+    .feed { grid-template-columns: 1fr 1fr 1fr 1fr; }
 }
 .sentinel { height: 1px; }
 

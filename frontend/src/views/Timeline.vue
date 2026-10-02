@@ -93,9 +93,15 @@ function videoOf(item) {
 </template>
 
 <style scoped>
-.feed { display: grid; gap: 1.5rem; }
-@media (min-width: 760px) {
+.feed { display: grid; gap: 1.25rem; }
+@media (min-width: 640px) {
     .feed { grid-template-columns: 1fr 1fr; }
+}
+@media (min-width: 900px) {
+    .feed { grid-template-columns: 1fr 1fr 1fr; }
+}
+@media (min-width: 1400px) {
+    .feed { grid-template-columns: 1fr 1fr 1fr 1fr; }
 }
 
 .feed-item {

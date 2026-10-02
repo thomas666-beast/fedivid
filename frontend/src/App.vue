@@ -352,7 +352,7 @@ html:not(.dark) .icon-btn:hover { background: #f3f3f6; color: #0e0f14; }
 .main {
     flex: 1;
     width: 100%;
-    max-width: 1000px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 2rem 1.5rem 4rem;
 }

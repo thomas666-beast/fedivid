@@ -188,11 +188,14 @@ html:not(.dark) .remote-header { background: #fff; border-color: #e7e7ec; }
 }
 html:not(.dark) .remote-summary { background: #fff; border-color: #e7e7ec; }
 
-.feed { display: grid; gap: 1.5rem; }
-@media (min-width: 760px) {
+.feed { display: grid; gap: 1.25rem; }
+@media (min-width: 640px) {
     .feed { grid-template-columns: 1fr 1fr; }
 }
-@media (min-width: 1200px) {
+@media (min-width: 900px) {
     .feed { grid-template-columns: 1fr 1fr 1fr; }
+}
+@media (min-width: 1400px) {
+    .feed { grid-template-columns: 1fr 1fr 1fr 1fr; }
 }
 </style>
