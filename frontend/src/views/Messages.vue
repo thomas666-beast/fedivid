@@ -37,9 +37,21 @@ async function load() {
   }
 }
 
+// The backend sends two formats for the same peer:
+//   - listConversations: "bob@remote.test" (user@host)
+//   - WebSocket sender: "@remote.test/users/bob"
+// Normalize to "user@host" so we can match them.
+function normalizePeer(s) {
+  if (!s) return s
+  const m = String(s).match(/^@?([^/@]+)\/users\/([^/]+)$/)
+  if (m) return `${m[2]}@${m[1]}`
+  return s
+}
+
 function onSocketMessage(msg) {
-  // Insert or update the conversation
-  const existing = items.value.find(c => c.peer === msg.sender)
+  const peer = normalizePeer(msg.sender)
+  const existing = items.value.find(c => c.peer === peer)
+
   if (existing) {
     existing.last_body = msg.body
     existing.last_at = msg.created_at
@@ -48,7 +60,7 @@ function onSocketMessage(msg) {
     items.value = [existing, ...items.value.filter(c => c !== existing)]
   } else {
     items.value = [{
-      peer: msg.sender,
+      peer,
       peer_actor: null,
       last_body: msg.body,
       last_at: msg.created_at,

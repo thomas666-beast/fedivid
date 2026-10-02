@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getSession, changePassword, deleteAccount } from '../api'
+import { getSession, changePassword, deleteAccount, logout } from '../api'
 import Icon from '../components/Icon.vue'
 
 const router = useRouter()
@@ -74,6 +74,13 @@ async function submitDelete() {
     deleteBusy.value = false
   }
 }
+
+async function doLogout() {
+  try {
+    await logout()
+  } catch { /* ignore — proceed to redirect regardless */ }
+  router.push('/login')
+}
 </script>
 
 <template>
@@ -123,7 +130,7 @@ async function submitDelete() {
         <p class="muted" style="margin: 0 0 1rem;">
           Log out of this browser. Your session cookie is cleared.
         </p>
-        <button class="btn" @click="router.push('/logout')">Log out</button>
+        <button class="btn" @click="doLogout">Log out</button>
       </div>
 
       <!-- Delete account -->
