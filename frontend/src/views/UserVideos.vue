@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
-import { listVideos, getProfile, getSession, follow, unfollow, uploadAvatar, deleteAvatar } from '../api'
+import { listVideos, getProfile, getSession, follow, unfollow, uploadAvatar, deleteAvatar, getMyBoosts } from '../api'
 import { bumpAvatarVersion } from '../lib/avatarBus'
 import VideoPreviewCard from '../components/VideoPreviewCard.vue'
 import Avatar from '../components/Avatar.vue'
@@ -73,11 +73,7 @@ async function reload() {
 
     if (sess) {
       try {
-        const list = await fetch(
-          `/api/users/${encodeURIComponent(sess.username)}/announces`,
-          { credentials: 'include' }
-        ).then(r => r.json())
-        myBoosts.value = new Set((list.items || []).map(a => a.object))
+        myBoosts.value = await getMyBoosts(sess.username)
       } catch { /* ignore */ }
     }
 

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getSession, likeVideo, unlikeVideo, likeStatus, boost, unboost, updateVideo, deleteVideo } from '../api'
+import { getSession, likeVideo, unlikeVideo, likeStatus, boost, unboost, updateVideo, deleteVideo, getMyBoosts } from '../api'
 import { fmtCount, fmtTime } from '../utils/format'
 import VideoPlayer from '../components/VideoPlayer.vue'
 import Comments from '../components/Comments.vue'
@@ -47,11 +47,8 @@ async function load() {
       } catch { /* ignore */ }
 
       try {
-        const list = await fetch(
-          `/api/users/${encodeURIComponent(sess.username)}/announces`,
-          { credentials: 'include' }
-        ).then(r => r.json())
-        boosted.value = (list.items || []).some(a => a.object === video.value.url)
+        const boosts = await getMyBoosts(sess.username)
+        boosted.value = boosts.has(video.value.url)
       } catch { /* ignore */ }
     }
   } catch (e) {

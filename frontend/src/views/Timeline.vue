@@ -1,10 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getSession, getTimeline } from '../api'
 import VideoPreviewCard from '../components/VideoPreviewCard.vue'
 import Icon from '../components/Icon.vue'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll'
+import { getSession, getTimeline, getMyBoosts } from '../api'
 
 const router = useRouter()
 const items = ref([])
@@ -29,11 +29,7 @@ onMounted(async () => {
   me.value = sess
 
   try {
-    const list = await fetch(
-      `/api/users/${encodeURIComponent(sess.username)}/announces`,
-      { credentials: 'include' }
-    ).then(r => r.json())
-    myBoosts.value = new Set((list.items || []).map(a => a.object))
+    myBoosts.value = await getMyBoosts(sess.username)
   } catch { /* ignore */ }
 
   await loadPage()

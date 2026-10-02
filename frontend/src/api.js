@@ -1,8 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
 
-// Cache the session lookup for a short window. Feed pages mount N cards
-// at once, each of which calls getSession(). Without this, that's N
-// requests to /api/sessions/me for the same answer.
 let sessionCache = { value: undefined, timestamp: 0 }
 const SESSION_CACHE_MS = 1000
 
@@ -336,7 +333,6 @@ export async function boost(username, objectUrl) {
 }
 
 export async function unboost(username, objectUrl) {
-  // Find the announce id first
   const list = await fetch(
     `${API_BASE}/api/users/${encodeURIComponent(username)}/announces`,
     { credentials: 'include' }
@@ -351,6 +347,16 @@ export async function unboost(username, objectUrl) {
   )
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return await res.json()
+}
+
+export async function getMyBoosts(username) {
+  const res = await fetch(
+    `${API_BASE}/api/users/${encodeURIComponent(username)}/announces`,
+    { credentials: 'include' }
+  )
+  if (!res.ok) return new Set()
+  const data = await res.json().catch(() => ({}))
+  return new Set((data.items || []).map(a => a.object))
 }
 
 export async function listConversations() {
@@ -466,6 +472,33 @@ export async function adminWorkers(token) {
   return await res.json()
 }
 
+export async function adminFailures(token, { search = '', limit = 50, offset = 0 } = {}) {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  })
+  if (search) params.set('search', search)
+
+  const res = await fetch(`${API_BASE}/api/admin/failures?${params}`, {
+    headers: { 'X-Admin-Token': token },
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return await res.json()
+}
+
+export async function adminFailureRows(token, inboxUrl, lastError, limit = 100) {
+  const params = new URLSearchParams({
+    inbox_url: inboxUrl,
+    last_error: lastError,
+    limit: String(limit),
+  })
+  const res = await fetch(`${API_BASE}/api/admin/failure-rows?${params}`, {
+    headers: { 'X-Admin-Token': token },
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return await res.json()
+}
+
 export async function getRemoteVideo(id) {
   const res = await fetch(`${API_BASE}/api/remote-videos/${encodeURIComponent(id)}`)
   if (res.status === 404) return null
@@ -570,31 +603,4 @@ export async function deleteMessage(id) {
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
   return data
-}
-
-export async function adminFailures(token, { search = '', limit = 50, offset = 0 } = {}) {
-  const params = new URLSearchParams({
-    limit: String(limit),
-    offset: String(offset),
-  })
-  if (search) params.set('search', search)
-
-  const res = await fetch(`${API_BASE}/api/admin/failures?${params}`, {
-    headers: { 'X-Admin-Token': token },
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return await res.json()
-}
-
-export async function adminFailureRows(token, inboxUrl, lastError, limit = 100) {
-  const params = new URLSearchParams({
-    inbox_url: inboxUrl,
-    last_error: lastError,
-    limit: String(limit),
-  })
-  const res = await fetch(`${API_BASE}/api/admin/failure-rows?${params}`, {
-    headers: { 'X-Admin-Token': token },
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return await res.json()
 }

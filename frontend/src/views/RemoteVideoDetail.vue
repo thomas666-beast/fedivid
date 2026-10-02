@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getSession, getRemoteVideo, boost, unboost } from '../api'
+import { getSession, getRemoteVideo, boost, unboost, getMyBoosts } from '../api'
 import { fmtCount, fmtTime } from '../utils/format'
 import Comments from '../components/Comments.vue'
 import Icon from '../components/Icon.vue'
@@ -50,11 +50,8 @@ async function load() {
 
     if (sess) {
       try {
-        const list = await fetch(
-          `/api/users/${encodeURIComponent(sess.username)}/announces`,
-          { credentials: 'include' }
-        ).then(r => r.json())
-        boosted.value = (list.items || []).some(a => a.object === v.object_id)
+        const boosts = await getMyBoosts(sess.username)
+        boosted.value = boosts.has(v.object_id)
       } catch { /* ignore */ }
     }
   } catch (e) {

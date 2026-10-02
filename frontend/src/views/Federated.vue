@@ -1,9 +1,9 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
-import { getSession, getFederatedFeed } from '../api'
 import VideoPreviewCard from '../components/VideoPreviewCard.vue'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll'
+import { getSession, getFederatedFeed, getMyBoosts } from '../api'
 
 const route = useRoute()
 const items = ref([])
@@ -37,16 +37,7 @@ async function reset() {
 
 onMounted(async () => {
   try {
-    const sess = await getSession()
-    if (sess) {
-      const list = await fetch(
-        `/api/users/${encodeURIComponent(sess.username)}/announces`,
-        { credentials: 'include' }
-      ).then(r => r.json())
-      myBoosts.value = new Set((list.items || []).map(a => a.object))
-    }
-    await loadPage()
-    markReady()
+    myBoosts.value = await getMyBoosts(sess.username)
   } catch (e) {
     error.value = e.message
   }
