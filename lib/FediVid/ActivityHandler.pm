@@ -203,25 +203,25 @@ sub _handle_delete ($db, $activity) {
     return (0, 'Delete object has no id') unless $object_url;
 
     # Only handle self-deletion (actor == object). Deletion of specific
-    # videos / notes / etc. is handled elsewhere or ignored.
+    # videos / notes / comments is not currently propagated.
     return (1, undef) unless $object_url eq $actor;
 
     # This is a remote user deleting their account. Remove every trace of
-    # them from our database so we don't keep talking to a ghost.
+    # them from our local database so we don't keep showing a ghost.
 
-    # 1. Followers/following relationships both ways.
+    # 1. Followers / following relationships.
     $db->query('DELETE FROM followers WHERE remote_actor = ?', $actor);
     $db->query('DELETE FROM following WHERE remote_actor = ?', $actor);
 
     # 2. Videos we cached from them.
     $db->query('DELETE FROM remote_videos WHERE remote_actor = ?', $actor);
 
-    # 3. The actor document itself (so we don't keep using a dead cache entry).
+    # 3. The actor document (so we don't keep using a dead cache entry).
     $db->query('DELETE FROM remote_actors WHERE url = ?', $actor);
 
-    # 4. Messages. We soft-delete by hiding both sides so the other party
-    #    still sees their own copy if they're a local user, but the deleted
-    #    peer no longer appears in conversation lists.
+    # 4. Messages. We soft-delete — hide from both sender and recipient so
+    #    the conversation disappears from local users' lists, but the row
+    #    remains in the database (recoverable if needed).
     $db->query(
         'UPDATE messages
             SET hidden_by_sender = TRUE,
@@ -230,16 +230,17 @@ sub _handle_delete ($db, $activity) {
         $actor, $actor
     );
 
-    # 5. Comments from them. Their authorship is only meaningful if the video
-    #    is still around, so a hard delete is fine — the comment was made by
-    #    an account that no longer exists.
+    # 5. Comments written by them.
     $db->query('DELETE FROM comments WHERE author_actor = ?', $actor);
 
     # 6. Likes they made.
     $db->query('DELETE FROM likes WHERE remote_actor = ?', $actor);
 
     # 7. Announces (boosts) they made.
-    $db->query('DELETE FROM announces WHERE actor = ? AND is_remote = TRUE', $actor);
+    $db->query(
+        'DELETE FROM announces WHERE actor = ? AND is_remote = TRUE',
+        $actor
+    );
 
     # 8. Notifications referring to them.
     $db->query('DELETE FROM notifications WHERE actor = ?', $actor);
@@ -476,6 +477,7 @@ sub _fallback_activity_id ($activity) {
     my $h = Digest::SHA::sha256_hex("like\x00$actor\x00$object");
     return "urn:fedivid:like:$h";
 }
+
 sub _strip_fragment ($url) {
     (my $u = $url) =~ s/#.*\z//;
     return $u;
