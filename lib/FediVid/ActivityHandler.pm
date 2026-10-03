@@ -202,12 +202,47 @@ sub _handle_delete ($db, $activity) {
     my $object_url = ref $object eq 'HASH' ? $object->{id} : $object;
     return (0, 'Delete object has no id') unless $object_url;
 
+    # Only handle self-deletion (actor == object). Deletion of specific
+    # videos / notes / etc. is handled elsewhere or ignored.
     return (1, undef) unless $object_url eq $actor;
 
+    # This is a remote user deleting their account. Remove every trace of
+    # them from our database so we don't keep talking to a ghost.
+
+    # 1. Followers/following relationships both ways.
+    $db->query('DELETE FROM followers WHERE remote_actor = ?', $actor);
+    $db->query('DELETE FROM following WHERE remote_actor = ?', $actor);
+
+    # 2. Videos we cached from them.
+    $db->query('DELETE FROM remote_videos WHERE remote_actor = ?', $actor);
+
+    # 3. The actor document itself (so we don't keep using a dead cache entry).
+    $db->query('DELETE FROM remote_actors WHERE url = ?', $actor);
+
+    # 4. Messages. We soft-delete by hiding both sides so the other party
+    #    still sees their own copy if they're a local user, but the deleted
+    #    peer no longer appears in conversation lists.
     $db->query(
-        'DELETE FROM followers WHERE remote_actor = ?',
-        $actor
+        'UPDATE messages
+            SET hidden_by_sender = TRUE,
+                hidden_by_recipient = TRUE
+          WHERE sender_actor = ? OR recipient_actor = ?',
+        $actor, $actor
     );
+
+    # 5. Comments from them. Their authorship is only meaningful if the video
+    #    is still around, so a hard delete is fine — the comment was made by
+    #    an account that no longer exists.
+    $db->query('DELETE FROM comments WHERE author_actor = ?', $actor);
+
+    # 6. Likes they made.
+    $db->query('DELETE FROM likes WHERE remote_actor = ?', $actor);
+
+    # 7. Announces (boosts) they made.
+    $db->query('DELETE FROM announces WHERE actor = ? AND is_remote = TRUE', $actor);
+
+    # 8. Notifications referring to them.
+    $db->query('DELETE FROM notifications WHERE actor = ?', $actor);
 
     return (1, undef);
 }

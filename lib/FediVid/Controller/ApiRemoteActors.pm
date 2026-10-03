@@ -34,11 +34,11 @@ sub show ($c) {
     my $videos = $db->query(
         q{
             SELECT id, title, description, object_id, video_url, media_type,
-                   duration, width, height, published_at, poster_url
+                   duration, width, height, published_at, poster_url, tags
               FROM (
                   SELECT DISTINCT ON (object_id)
                          id, title, description, object_id, video_url, media_type,
-                         duration, width, height, published_at, poster_url
+                         duration, width, height, published_at, poster_url, tags
                     FROM remote_videos
                    WHERE remote_actor = ?
                    ORDER BY object_id, id
@@ -61,10 +61,11 @@ sub show ($c) {
             remote_actor     => $actor_url,
             title            => $_->{title} // '',
             description      => $_->{description} // '',
+            tags             => _tags_array($_->{tags}),
             url              => $_->{video_url},
             hls_url          => undef,
-            poster_url       => $_->{poster_url},   # NOW RETURNED
-            author_icon      => $icon,              # NEW: avatar URL for the card
+            poster_url       => $_->{poster_url},
+            author_icon      => $icon,
             duration         => $_->{duration} ? 0 + $_->{duration} : undef,
             width            => $_->{width}    ? 0 + $_->{width}    : undef,
             height           => $_->{height}   ? 0 + $_->{height}   : undef,
@@ -89,6 +90,15 @@ sub show ($c) {
         video_count  => scalar @items,
         videos       => \@items,
     });
+}
+
+sub _tags_array ($raw) {
+    return [] unless defined $raw;
+    return $raw if ref $raw eq 'ARRAY';
+    return [] if $raw eq '{}';
+    $raw =~ s/^\{//;
+    $raw =~ s/\}$//;
+    return [ split /,/, $raw ];
 }
 
 1;

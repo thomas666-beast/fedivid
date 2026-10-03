@@ -1,6 +1,6 @@
 package FediVid::Controller::ApiSettings;
 use Mojo::Base 'Mojolicious::Controller', -signatures;
-use Mojo::JSON qw(encode_json);
+use Mojo::JSON qw(encode_json decode_json);
 use FediVid::Signature qw(verify_request verify_digest);
 
 sub delete_account ($c) {
@@ -20,6 +20,8 @@ sub delete_account ($c) {
         detail => $auth_err,
     }, status => 401) unless $authed;
 
+    my $base = $c->config('base_url');
+
     # Gather files and remote inboxes before deleting
     my $video_files = $db->query(
         'SELECT file_path, hls_dir FROM videos WHERE username = ?',
@@ -38,7 +40,22 @@ sub delete_account ($c) {
         $username
     )->arrays;
 
-    my $base = $c->config('base_url');
+    # Also find any remote peers we've exchanged DMs with, so we can tell
+    # them to clean up their cached copy of us.
+    my $me = "$base/users/$username";
+    my $dm_peers = $db->query(
+        q{
+            SELECT DISTINCT actor AS remote_actor FROM (
+                SELECT sender_actor AS actor FROM messages
+                 WHERE recipient_actor = ?
+                UNION
+                SELECT recipient_actor AS actor FROM messages
+                 WHERE sender_actor = ?
+            ) AS peers
+             WHERE actor NOT LIKE ?
+        },
+        $me, $me, "$base/users/%"
+    )->arrays;
 
     # Delete user (cascades to videos, comments, likes, boosts, messages, followers, following, notifications via FK)
     $db->query('DELETE FROM users WHERE username = ?', $username);
@@ -52,7 +69,7 @@ sub delete_account ($c) {
         }
     }
 
-    # Send Delete activities
+    # Build the Delete activity
     require FediVid::DeliveryQueue;
     my $activity = {
         '@context' => 'https://www.w3.org/ns/activitystreams',
@@ -64,9 +81,31 @@ sub delete_account ($c) {
     };
 
     my %seen;
+
+    # 1. Followers + following — they already have us cached
     for my $row (@$followers, @$following) {
         my ($inbox) = @$row;
         next if $seen{$inbox}++;
+        FediVid::DeliveryQueue::enqueue($db, $username, $inbox, $activity);
+    }
+
+    # 2. DM peers — resolve their inbox from the remote_actors cache
+    require FediVid::RemoteActor;
+    for my $row (@$dm_peers) {
+        my ($actor_url) = @$row;
+        next unless $actor_url;
+
+        my $actor_row = $db->query(
+            'SELECT actor FROM remote_actors WHERE url = ?',
+            $actor_url
+        )->hash;
+        next unless $actor_row;
+
+        my $doc = eval { decode_json($actor_row->{actor}) } || {};
+        my $inbox = $doc->{inbox};
+        next unless $inbox;
+        next if $seen{$inbox}++;
+
         FediVid::DeliveryQueue::enqueue($db, $username, $inbox, $activity);
     }
 
