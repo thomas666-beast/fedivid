@@ -2,6 +2,7 @@ package FediVid::Controller::ApiSettings;
 use Mojo::Base 'Mojolicious::Controller', -signatures;
 use Mojo::JSON qw(encode_json decode_json);
 use FediVid::Signature qw(verify_request verify_digest);
+use FediVid::Auth qw(authenticate_as);
 
 sub delete_account ($c) {
     my $username = $c->param('username');
@@ -14,7 +15,7 @@ sub delete_account ($c) {
     return $c->render(json => { error => 'not_found' }, status => 404)
         unless $user;
 
-    my ($authed, $auth_err) = _authenticate_as($c, $user, $username);
+    my ($authed, $auth_err) = authenticate_as($c, $user, $username);
     return $c->render(json => {
         error  => 'unauthorized',
         detail => $auth_err,
@@ -129,36 +130,6 @@ sub _http_date ($epoch) {
     return sprintf('%s, %02d %s %04d %02d:%02d:%02d GMT',
         $dow[$t[6]], $t[3], $mon[$t[4]], $t[5] + 1900,
         $t[2], $t[1], $t[0]);
-}
-
-sub _authenticate_as ($c, $user, $username) {
-    my $session_user = eval {
-        require FediVid::Controller::Sessions;
-        FediVid::Controller::Sessions::_current_user($c);
-    };
-    return (1, undef) if $session_user && $session_user eq $username;
-
-    return (0, 'user has no public key') unless $user->{public_key_pem};
-
-    my $auth = $c->req->headers->header('Authorization') // '';
-    return (0, 'missing Authorization header') unless $auth;
-
-    my ($key_id) = $auth =~ /keyId="([^"]+)"/;
-    return (0, 'missing keyId') unless $key_id;
-
-    my $base   = $c->config('base_url');
-    my $expect = "$base/users/$username";
-
-    (my $key_actor = $key_id) =~ s/#.*\z//;
-    return (0, 'keyId does not match user') unless $key_actor eq $expect;
-
-    my ($sig_ok, $sig_err) = verify_request($c->req, $user->{public_key_pem});
-    return (0, "signature: $sig_err") unless $sig_ok;
-
-    my ($digest_ok, $digest_err) = verify_digest($c->req);
-    return (0, "digest: $digest_err") unless $digest_ok;
-
-    return (1, undef);
 }
 
 1;

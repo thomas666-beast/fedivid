@@ -208,6 +208,13 @@ sub _handle_delete ($db, $activity) {
 
     # This is a remote user deleting their account. Remove every trace of
     # them from our local database so we don't keep showing a ghost.
+    #
+    # NOTE: we deliberately do NOT delete the `remote_actors` cache entry.
+    # That entry holds the public key we need to verify subsequent signed
+    # requests, including any already-in-flight. It expires on its own
+    # after the TTL (24h) and will be re-fetched if the actor comes back.
+    # If the actor really is gone, their next request will fail signature
+    # verification, which is the correct outcome.
 
     # 1. Followers / following relationships.
     $db->query('DELETE FROM followers WHERE remote_actor = ?', $actor);
@@ -216,12 +223,9 @@ sub _handle_delete ($db, $activity) {
     # 2. Videos we cached from them.
     $db->query('DELETE FROM remote_videos WHERE remote_actor = ?', $actor);
 
-    # 3. The actor document (so we don't keep using a dead cache entry).
-    $db->query('DELETE FROM remote_actors WHERE url = ?', $actor);
-
-    # 4. Messages. We soft-delete — hide from both sender and recipient so
-    #    the conversation disappears from local users' lists, but the row
-    #    remains in the database (recoverable if needed).
+    # 3. Messages. Soft-delete: hide from both sides so the conversation
+    #    disappears from local users' lists, but the row remains in the
+    #    database (recoverable if needed).
     $db->query(
         'UPDATE messages
             SET hidden_by_sender = TRUE,
@@ -230,19 +234,19 @@ sub _handle_delete ($db, $activity) {
         $actor, $actor
     );
 
-    # 5. Comments written by them.
+    # 4. Comments written by them.
     $db->query('DELETE FROM comments WHERE author_actor = ?', $actor);
 
-    # 6. Likes they made.
+    # 5. Likes they made.
     $db->query('DELETE FROM likes WHERE remote_actor = ?', $actor);
 
-    # 7. Announces (boosts) they made.
+    # 6. Announces (boosts) they made.
     $db->query(
         'DELETE FROM announces WHERE actor = ? AND is_remote = TRUE',
         $actor
     );
 
-    # 8. Notifications referring to them.
+    # 7. Notifications referring to them.
     $db->query('DELETE FROM notifications WHERE actor = ?', $actor);
 
     return (1, undef);
